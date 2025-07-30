@@ -1,5 +1,5 @@
 import { useCartStore, CartItem } from '@/store/cart'
-import { Product } from '@/lib/woocommerce'
+import { FloraProduct } from '@/lib/woocommerce'
 
 export function useCart() {
   const {
@@ -12,7 +12,7 @@ export function useCart() {
     getItemCount,
   } = useCartStore()
 
-  const addToCart = (product: Product, quantity = 1, variation?: CartItem['variation']) => {
+  const addToCart = (product: FloraProduct, quantity = 1, variation?: CartItem['variation']) => {
     addItem(product, quantity, variation)
   }
 

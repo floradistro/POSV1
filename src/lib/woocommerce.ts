@@ -726,30 +726,23 @@ const sampleMoonwaterProducts: FloraProduct[] = [
       id: 1, 
       src: "/icons/Moonwater.png", 
       name: "moonwater", 
-      alt: "Moonwater beverage",
-      position: 0
+      alt: "Moonwater beverage"
     }],
     attributes: [
       {
         id: 1,
         name: "Flavor",
-        position: 0,
-        visible: true,
-        variation: true,
         options: ["Original", "Citrus", "Berry", "Tropical"]
       },
       {
         id: 2,
         name: "Pack Size",
-        position: 1,
-        visible: true,
-        variation: true,
         options: ["Single", "4-Pack"]
       }
     ],
     meta_data: [
-      { id: 1, key: "strength_mg", value: "10" },
-      { id: 2, key: "effects", value: "Refreshing, Hydrating, Calming" }
+      { key: "strength_mg", value: "10" },
+      { key: "effects", value: "Refreshing, Hydrating, Calming" }
     ],
     variations: [1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008],
     has_options: true,
