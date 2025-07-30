@@ -17,6 +17,8 @@ interface CartItem extends FloraProduct {
   cartQuantity: number
 }
 
+type ViewMode = 'products' | 'customers'
+
 // Transform WooCommerceProduct to FloraProduct
 const transformToFloraProduct = async (wooProduct: WooCommerceProduct): Promise<FloraProduct> => {
   let variationsData = undefined
@@ -62,7 +64,7 @@ export default function FloraDistrosPOS() {
   const [apiError, setApiError] = useState(false)
   const [selectedOptions, setSelectedOptions] = useState<Record<number, string>>({})
   const [searchQuery, setSearchQuery] = useState('')
-  const [viewMode, setViewMode] = useState<'products' | 'customers'>('products')
+  const [viewMode, setViewMode] = useState<ViewMode>('products')
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null)
   const [assignedCustomer, setAssignedCustomer] = useState<any>(null)
   const [isScannerOpen, setIsScannerOpen] = useState(false)
@@ -278,13 +280,13 @@ export default function FloraDistrosPOS() {
                     </div>
                   )}
                   <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setViewMode('products')}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${
-                      viewMode === 'products'
-                        ? 'bg-background-tertiary text-white border border-white/20'
-                        : 'bg-background-secondary text-white/70 hover:text-white hover:bg-background-tertiary'
-                    }`}
+                                  <button
+                  onClick={() => setViewMode('products')}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${
+                    (viewMode as ViewMode) === 'products'
+                      ? 'bg-background-tertiary text-white border border-white/20'
+                      : 'bg-background-secondary text-white/70 hover:text-white hover:bg-background-tertiary'
+                  }`}
                   >
                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012 2v2M7 7h10" />
@@ -293,7 +295,7 @@ export default function FloraDistrosPOS() {
                   <button
                     onClick={() => setViewMode('customers')}
                     className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${
-                      viewMode === 'customers'
+                      (viewMode as ViewMode) === 'customers'
                         ? 'bg-background-tertiary text-white border border-white/20'
                         : 'bg-background-secondary text-white/70 hover:text-white hover:bg-background-tertiary'
                     }`}
@@ -379,7 +381,7 @@ export default function FloraDistrosPOS() {
                 <button
                   onClick={() => setViewMode('customers')}
                   className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${
-                    viewMode === 'customers'
+                    (viewMode as ViewMode) === 'customers'
                       ? 'bg-background-tertiary text-white border border-white/20'
                       : 'bg-background-secondary text-white/70 hover:text-white hover:bg-background-tertiary'
                   }`}
