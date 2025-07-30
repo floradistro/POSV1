@@ -1,0 +1,265 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* VSCode Dark Theme CSS Custom Properties */
+:root {
+  --color-primary-bg: #1E1E1E;
+  --color-secondary-bg: #252526;
+  --color-tertiary-bg: #2D2D30;
+  --color-sidebar-bg: #333333;
+  --color-panel-bg: #3C3C3C;
+  --color-dark-bg: #181818;
+  --color-overlay-bg: #2D2D30;
+  --color-text-primary: #CCCCCC;
+  --color-text-secondary: #969696;
+  --color-text-muted: #6A6A6A;
+  --color-border-light: #3E3E3E;
+  --color-border-default: #454545;
+  --color-border-hover: #5A5A5A;
+  --color-accent: #F14C4C;
+  --color-accent-hover: #FF6B6B;
+  --color-accent-dark: #D32F2F;
+  --cannabis-sage: #87A96B;
+}
+
+@layer base {
+  /* Mobile-First Performance Optimizations */
+  * {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html {
+    font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  
+  body {
+    font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    background-color: var(--color-primary-bg);
+    color: var(--color-text-primary);
+    min-height: 100vh;
+  }
+
+  /* Mobile touch targets */
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+    -webkit-touch-action: manipulation;
+  }
+
+  /* Optimize images for mobile */
+  img {
+    content-visibility: auto;
+    contain-intrinsic-size: 400px;
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* VSCode Dark Theme Typography Scales */
+.text-luxury-xs { 
+  font-size: 0.75rem; 
+  letter-spacing: 0.05em; 
+  font-weight: 300; 
+}
+
+.text-luxury-sm { 
+  font-size: 0.875rem; 
+  letter-spacing: 0.025em; 
+  font-weight: 300; 
+}
+
+.text-luxury-base { 
+  font-size: 1rem; 
+  letter-spacing: 0.015em; 
+  font-weight: 300; 
+}
+
+.text-luxury-lg { 
+  font-size: 1.125rem; 
+  letter-spacing: 0.01em; 
+  font-weight: 300; 
+}
+
+.text-luxury-xl { 
+  font-size: 1.25rem; 
+  letter-spacing: 0.005em; 
+  font-weight: 300; 
+}
+
+.text-luxury-2xl { 
+  font-size: 1.5rem; 
+  letter-spacing: 0em; 
+  font-weight: 200; 
+}
+
+.text-luxury-3xl { 
+  font-size: 1.875rem; 
+  letter-spacing: -0.005em; 
+  font-weight: 200; 
+}
+
+.text-luxury-4xl { 
+  font-size: 2.25rem; 
+  letter-spacing: -0.01em; 
+  font-weight: 200; 
+}
+
+/* Luxury Brand Spacing */
+.tracking-luxury-tight { letter-spacing: -0.025em; }
+.tracking-luxury-normal { letter-spacing: 0.015em; }
+.tracking-luxury-wide { letter-spacing: 0.05em; }
+.tracking-luxury-wider { letter-spacing: 0.1em; }
+
+/* Custom VSCode scrollbar */
+::-webkit-scrollbar {
+  width: 2px;
+  height: 2px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-secondary-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-accent);
+  border-radius: 0px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent-hover);
+}
+
+/* Focus states with subtle red accent */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Utility classes */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .gpu-accelerated {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  .smooth-transition {
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform, opacity;
+  }
+
+  .will-change-transform {
+    will-change: transform;
+  }
+
+  .will-change-opacity {
+    will-change: opacity;
+  }
+
+  .will-change-auto {
+    will-change: auto;
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  /* Touch targets */
+  button, a, .clickable {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Disable hover effects on touch devices */
+  @media (hover: none) {
+    .hover\:scale-105:hover,
+    .hover\:scale-110:hover,
+    .hover\:scale-\[1\.02\]:hover {
+      transform: none !important;
+    }
+  }
+  
+  /* Better tap feedback */
+  button:active, a:active, .clickable:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease;
+  }
+}
+
+/* Clean body styles for better fixed positioning */
+html, body {
+  position: relative;
+  overflow-x: hidden;
+  height: 100%;
+}
+
+/* VSCode glass card effect */
+.flora-glass {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--color-border-default);
+}
+
+.flora-glass:hover {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
+  border-color: var(--color-border-hover);
+}
+
+/* VSCode button styles */
+.flora-btn-primary {
+  background: linear-gradient(135deg, var(--color-secondary-bg) 0%, var(--color-tertiary-bg) 100%);
+  border: 1px solid var(--color-border-default);
+  color: var(--color-text-primary);
+  font-weight: 500;
+  letter-spacing: 0.015em;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.flora-btn-primary:hover {
+  background: linear-gradient(135deg, var(--color-tertiary-bg) 0%, var(--color-panel-bg) 100%);
+  border-color: var(--color-border-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.flora-btn-secondary {
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%);
+  border: 1px solid var(--color-accent);
+  color: white;
+  font-weight: 600;
+  letter-spacing: 0.015em;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.flora-btn-secondary:hover {
+  background: linear-gradient(135deg, var(--color-accent-hover) 0%, var(--color-accent) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 32px rgba(241, 76, 76, 0.3);
+} 
