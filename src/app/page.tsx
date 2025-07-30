@@ -238,7 +238,7 @@ export default function FloraDistrosPOS() {
 
         {/* Horizontal Navigation */}
         <nav className="bg-background-secondary border-b border-white/[0.08] px-6 py-1">
-          {viewMode === 'products' ? (
+          {(viewMode as ViewMode) === 'products' ? (
             <>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -369,7 +369,7 @@ export default function FloraDistrosPOS() {
                 <button
                   onClick={() => setViewMode('products')}
                   className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${
-                    viewMode === 'products'
+                    (viewMode as ViewMode) === 'products'
                       ? 'bg-background-tertiary text-white border border-white/20'
                       : 'bg-background-secondary text-white/70 hover:text-white hover:bg-background-tertiary'
                   }`}
@@ -399,7 +399,7 @@ export default function FloraDistrosPOS() {
         {/* Main Content Area */}
         <main className="flex-1 overflow-y-scroll pb-8">
           <div className="w-full max-w-none">
-            {viewMode === 'products' ? (
+            {(viewMode as ViewMode) === 'products' ? (
               filteredProducts.length > 0 ? (
                 <div className="w-full">
                   <SmartProductGrid
@@ -615,7 +615,7 @@ export default function FloraDistrosPOS() {
           <span className="text-white/50">Staff: Jordan M.</span>
         </div>
         <div className="flex items-center gap-4">
-          {viewMode === 'products' ? (
+          {(viewMode as ViewMode) === 'products' ? (
             <>
               <span className="text-white/50">
                 {activeCategory === 'all' 
