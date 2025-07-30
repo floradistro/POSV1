@@ -9,6 +9,7 @@ import CustomerList from '../components/CustomerList'
 import SmartSearch from '../components/SmartSearch'
 import { IDScanner } from '../components/IDScanner'
 import SettingsPanel from '../components/SettingsPanel'
+import PWAInstaller from '../components/PWAInstaller'
 import { Camera, ShoppingCart } from 'lucide-react'
 import { sampleCustomers } from '../data/customers'
 
@@ -603,6 +604,9 @@ export default function FloraDistrosPOS() {
         isOpen={isSettingsPanelOpen} 
         onClose={() => setIsSettingsPanelOpen(false)} 
       />
+
+      {/* PWA Installer */}
+      <PWAInstaller />
       
       {/* Status Bar */}
       <div className="fixed bottom-0 left-0 right-0 h-6 bg-[#1a1a1a] border-t border-white/[0.08] px-3 flex items-center justify-between text-xs z-50">
