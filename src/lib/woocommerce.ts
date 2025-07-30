@@ -172,6 +172,20 @@ export interface FloraCategory {
   count: number;
 }
 
+export interface CreateOrderData {
+  payment_method: string;
+  payment_method_title: string;
+  set_paid: boolean;
+  line_items: Array<{
+    product_id: number;
+    quantity: number;
+    variation_id?: number;
+  }>;
+  billing?: {
+    email?: string;
+  };
+}
+
 class FloraWooCommerceAPI {
   private baseURL: string
   private auth: string
@@ -269,6 +283,24 @@ class FloraWooCommerceAPI {
     }
     
     return { ...product, has_options: false }
+  }
+
+  async createOrder(orderData: CreateOrderData): Promise<any> {
+    // For now, this is a mock implementation for the POS system
+    // In a real implementation, this would make an API call to create the order
+    console.log('Creating order:', orderData)
+    
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    // Return a mock order response
+    return {
+      id: Math.floor(Math.random() * 10000),
+      status: 'completed',
+      total: orderData.line_items.reduce((sum, item) => sum + (item.quantity * 10), 0), // Mock calculation
+      payment_method: orderData.payment_method,
+      date_created: new Date().toISOString(),
+    }
   }
 }
 

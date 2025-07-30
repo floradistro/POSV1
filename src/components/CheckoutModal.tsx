@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { X, CreditCard, DollarSign, Loader2 } from 'lucide-react'
 import { CartItem } from '@/store/cart'
-import { wooCommerceApi, CreateOrderData } from '@/lib/woocommerce'
+import { floraAPI, CreateOrderData } from '@/lib/woocommerce'
 import { useMutation } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 
@@ -21,7 +21,7 @@ export function CheckoutModal({ isOpen, onClose, cartItems, total, onSuccess }: 
   const [customerEmail, setCustomerEmail] = useState('')
 
   const createOrderMutation = useMutation({
-    mutationFn: (orderData: CreateOrderData) => wooCommerceApi.createOrder(orderData),
+    mutationFn: (orderData: CreateOrderData) => floraAPI.createOrder(orderData),
     onSuccess: () => {
       toast.success('Order completed successfully!')
       onSuccess()
