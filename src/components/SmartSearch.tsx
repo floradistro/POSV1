@@ -261,7 +261,7 @@ export default function SmartSearch({
           // Delay hiding to allow clicking suggestions
           setTimeout(() => setShowSuggestions(false), 150)
         }}
-        className="w-80 pl-10 pr-4 py-2 bg-[#1a1a1a] border border-white/20 rounded-full text-white placeholder-text-tertiary focus:outline-none focus:border-white/40 focus:bg-[#2a2a2a] transition-all duration-200"
+        className="w-full pl-10 pr-4 py-2 bg-[#1a1a1a] border border-white/20 rounded-full text-white placeholder-text-tertiary focus:outline-none focus:border-white/40 focus:bg-[#2a2a2a] transition-all duration-200"
       />
 
       {searchQuery && (

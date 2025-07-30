@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library'
+import { BrowserMultiFormatReader, NotFoundException, BarcodeFormat } from '@zxing/library'
 
 interface IDScannerProps {
   onScan: (data: any) => void
@@ -12,9 +12,12 @@ export function IDScanner({ onScan, onClose }: IDScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isScanning, setIsScanning] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showManualInput, setShowManualInput] = useState(false)
+  const [manualData, setManualData] = useState('')
   const codeReader = useRef<BrowserMultiFormatReader | null>(null)
 
   useEffect(() => {
+    // Initialize with all formats (ZXing will automatically detect the best one)
     codeReader.current = new BrowserMultiFormatReader()
     startScanning()
 
@@ -30,16 +33,34 @@ export function IDScanner({ onScan, onClose }: IDScannerProps) {
 
       if (!codeReader.current || !videoRef.current) return
 
-      // Start scanning
+      // Request camera permissions explicitly
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'environment', // Use back camera if available
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
+      })
+      
+      console.log('Camera access granted, starting scanner...')
+
+      // Start scanning with better error handling
       await codeReader.current.decodeFromVideoDevice(null, videoRef.current, (result, error) => {
         if (result) {
           const scannedData = result.getText()
-          console.log('Scanned data:', scannedData)
+          console.log('Raw scanned data:', scannedData)
+          console.log('Barcode format:', result.getBarcodeFormat())
           
-          // Parse driver license data (PDF417 format)
+          // Parse driver license data
           const parsedData = parseDriverLicenseData(scannedData)
-          onScan(parsedData)
-          stopScanning()
+          console.log('Parsed data:', parsedData)
+          
+          if (parsedData && Object.keys(parsedData).length > 0) {
+            onScan(parsedData)
+            stopScanning()
+          } else {
+            console.log('No valid license data found, continuing scan...')
+          }
         }
         
         if (error && !(error instanceof NotFoundException)) {
@@ -48,7 +69,7 @@ export function IDScanner({ onScan, onClose }: IDScannerProps) {
       })
     } catch (err) {
       console.error('Failed to start camera:', err)
-      setError('Failed to access camera. Please check permissions.')
+      setError('Failed to access camera. Please allow camera permissions and try again.')
       setIsScanning(false)
     }
   }
@@ -61,22 +82,68 @@ export function IDScanner({ onScan, onClose }: IDScannerProps) {
   }
 
   const parseDriverLicenseData = (data: string) => {
-    // Basic parsing for AAMVA standard driver license barcodes
-    const lines = data.split('\n')
+    console.log('Parsing license data:', data)
+    
+    // Handle different data formats
+    let lines: string[] = []
+    
+    // Split by different possible delimiters
+    if (data.includes('\n')) {
+      lines = data.split('\n')
+    } else if (data.includes('\r')) {
+      lines = data.split('\r')
+    } else {
+      // For continuous data, split by AAMVA field identifiers
+      lines = data.split(/(?=D[A-Z]{2})/g)
+    }
+    
     const parsed: any = {}
 
     lines.forEach(line => {
-      if (line.startsWith('DAA')) parsed.fullName = line.substring(3)
-      if (line.startsWith('DAG')) parsed.streetAddress = line.substring(3)
-      if (line.startsWith('DAI')) parsed.city = line.substring(3)
-      if (line.startsWith('DAJ')) parsed.state = line.substring(3)
-      if (line.startsWith('DAK')) parsed.zipCode = line.substring(3)
-      if (line.startsWith('DAQ')) parsed.licenseNumber = line.substring(3)
-      if (line.startsWith('DBB')) parsed.dateOfBirth = line.substring(3)
-      if (line.startsWith('DBC')) parsed.gender = line.substring(3)
+      const trimmedLine = line.trim()
+      console.log('Processing line:', trimmedLine)
+      
+      // AAMVA standard fields
+      if (trimmedLine.startsWith('DAA')) parsed.fullName = trimmedLine.substring(3).trim()
+      if (trimmedLine.startsWith('DAB')) parsed.lastName = trimmedLine.substring(3).trim()
+      if (trimmedLine.startsWith('DAC')) parsed.firstName = trimmedLine.substring(3).trim()
+      if (trimmedLine.startsWith('DAD')) parsed.middleName = trimmedLine.substring(3).trim()
+      if (trimmedLine.startsWith('DAG')) parsed.streetAddress = trimmedLine.substring(3).trim()
+      if (trimmedLine.startsWith('DAH')) parsed.streetAddress2 = trimmedLine.substring(3).trim()
+      if (trimmedLine.startsWith('DAI')) parsed.city = trimmedLine.substring(3).trim()
+      if (trimmedLine.startsWith('DAJ')) parsed.state = trimmedLine.substring(3).trim()
+      if (trimmedLine.startsWith('DAK')) parsed.zipCode = trimmedLine.substring(3).trim()
+      if (trimmedLine.startsWith('DAQ')) parsed.licenseNumber = trimmedLine.substring(3).trim()
+      if (trimmedLine.startsWith('DBB')) parsed.dateOfBirth = trimmedLine.substring(3).trim()
+      if (trimmedLine.startsWith('DBC')) parsed.gender = trimmedLine.substring(3).trim()
+      if (trimmedLine.startsWith('DBD')) parsed.issueDate = trimmedLine.substring(3).trim()
+      if (trimmedLine.startsWith('DBA')) parsed.expirationDate = trimmedLine.substring(3).trim()
+      if (trimmedLine.startsWith('DCS')) parsed.customerIdNumber = trimmedLine.substring(3).trim()
+      
+      // North Carolina specific fields (if any)
+      if (trimmedLine.startsWith('ZCZ')) parsed.ncSpecificField = trimmedLine.substring(3).trim()
     })
 
+    // Format the full name if not provided but first/last are available
+    if (!parsed.fullName && (parsed.firstName || parsed.lastName)) {
+      parsed.fullName = [parsed.firstName, parsed.middleName, parsed.lastName]
+        .filter(Boolean)
+        .join(' ')
+    }
+
+    console.log('Final parsed data:', parsed)
     return parsed
+  }
+
+  const handleManualSubmit = () => {
+    if (manualData.trim()) {
+      const parsedData = parseDriverLicenseData(manualData.trim())
+      if (parsedData && Object.keys(parsedData).length > 0) {
+        onScan(parsedData)
+      } else {
+        setError('Could not parse the manual data. Please check the format.')
+      }
+    }
   }
 
   return (
@@ -124,6 +191,48 @@ export function IDScanner({ onScan, onClose }: IDScannerProps) {
               Position the barcode on the back of the driver's license within the frame
             </p>
             
+            {showManualInput ? (
+              <div className="space-y-3 mb-4">
+                <textarea
+                  value={manualData}
+                  onChange={(e) => setManualData(e.target.value)}
+                  placeholder="Paste the raw barcode data here..."
+                  className="w-full h-24 p-3 bg-background-tertiary border border-background-tertiary rounded-lg text-text text-sm resize-none"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowManualInput(false)}
+                    className="flex-1 bg-background-tertiary hover:bg-background-tertiary/80 text-text py-2 rounded-lg transition-colors text-sm"
+                  >
+                    Back to Camera
+                  </button>
+                  <button
+                    onClick={handleManualSubmit}
+                    className="flex-1 bg-primary hover:bg-primary-dark text-white py-2 rounded-lg transition-colors text-sm"
+                  >
+                    Parse Data
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-2 mb-4">
+                <button
+                  onClick={() => setShowManualInput(true)}
+                  className="flex-1 bg-background-tertiary hover:bg-background-tertiary/80 text-text py-2 rounded-lg transition-colors text-sm"
+                >
+                  Manual Input
+                </button>
+                {!isScanning && !error && (
+                  <button
+                    onClick={startScanning}
+                    className="flex-1 bg-primary hover:bg-primary-dark text-white py-2 rounded-lg transition-colors text-sm"
+                  >
+                    Start Scan
+                  </button>
+                )}
+              </div>
+            )}
+            
             <div className="flex gap-2">
               <button
                 onClick={onClose}
@@ -131,14 +240,6 @@ export function IDScanner({ onScan, onClose }: IDScannerProps) {
               >
                 Cancel
               </button>
-              {!isScanning && !error && (
-                <button
-                  onClick={startScanning}
-                  className="flex-1 bg-primary hover:bg-primary-dark text-white py-2 rounded-lg transition-colors"
-                >
-                  Start Scan
-                </button>
-              )}
             </div>
           </div>
         </div>

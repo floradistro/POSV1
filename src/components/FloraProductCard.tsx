@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { FloraProduct, getProductPrice, getRegularPrice, isOnSale, getProductImage, getStockStatus } from '../lib/woocommerce'
+import { FloraProduct, getProductPrice, getRegularPrice, isOnSale, getProductImage, getStockStatus, getDisplayPrice } from '../lib/woocommerce'
 
 interface FloraProductCardProps {
   product: FloraProduct
@@ -17,9 +17,9 @@ export default function FloraProductCard({ product, onAddToCart, onProductClick 
   const stockStatus = getStockStatus(product)
   const productImage = getProductImage(product)
   
-  // Handle variable products
+  // Handle variable products with real pricing data
   const isVariableProduct = product.has_options && product.variations && product.variations.length > 0
-  const displayPrice = isVariableProduct ? "From $45.00" : `$${price.toFixed(2)}`
+  const displayPrice = getDisplayPrice(product)
 
   const getStockColor = () => {
     switch (stockStatus) {

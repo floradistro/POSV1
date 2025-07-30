@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { buttonStyles, textStyles, animationStyles } from '../lib/styles'
-import { floraAPI, FloraProduct, FloraCategory, getProductCategory, sampleFloraProducts, getProductPrice } from '../lib/woocommerce'
+import { floraAPI, FloraProduct, FloraCategory, getProductCategory, sampleFloraProducts, getProductPrice, determineProductCategory } from '../lib/woocommerce'
 import { wooCommerceServerAPI, WooCommerceProduct } from '../lib/woocommerce-server'
 import { SmartProductGrid } from '../components/SmartProductGrid'
 import CustomerList from '../components/CustomerList'
@@ -76,7 +76,7 @@ export default function FloraDistrosPOS() {
     { name: 'All', slug: 'all', icon: '' },
     { name: 'Flower', slug: 'flower', icon: '' },
     { name: 'Vapes', slug: 'vape', icon: '' },
-    { name: 'Edibles', slug: 'edible', icon: '' },
+    { name: 'Edibles', slug: 'edibles', icon: '' },
     { name: 'Concentrates', slug: 'concentrate', icon: '' },
     { name: 'Moonwater', slug: 'moonwater', icon: '' }
   ]
@@ -87,19 +87,32 @@ export default function FloraDistrosPOS() {
         setLoading(true)
         setApiError(false)
         
-        // Try to load from WooCommerce API using the working server API
         console.log('🔄 Loading products from WooCommerce API...')
-        const [wooProducts, categoriesData] = await Promise.all([
+        
+        // Try to load from WooCommerce API with timeout
+        const timeout = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('API timeout')), 10000)
+        )
+        
+        const apiCall = Promise.all([
           wooCommerceServerAPI.getProducts({ per_page: 100, status: 'publish' }),
-          floraAPI.getCategories() // Keep using floraAPI for categories
+          floraAPI.getCategories()
         ])
         
+        const [wooProducts, categoriesData] = await Promise.race([apiCall, timeout]) as [WooCommerceProduct[], FloraCategory[]]
+        
         console.log(`📦 Loaded ${wooProducts.length} products from WooCommerce`)
+        
+        if (wooProducts.length === 0) {
+          throw new Error('No products returned from API')
+        }
         
         // Transform WooCommerce products to Flora products
         const transformedProducts = await Promise.all(
           wooProducts.map(transformToFloraProduct)
         )
+        
+        console.log(`✅ Transformed ${transformedProducts.length} products successfully`)
         
         // Debug: Log moonwater products
         const moonwaterProducts = transformedProducts.filter(product => {
@@ -112,12 +125,15 @@ export default function FloraDistrosPOS() {
         setCategories(categoriesData)
         
       } catch (error) {
-        console.error('Error loading data:', error)
+        console.error('❌ Error loading data:', error)
         setApiError(true)
-        // Fallback to sample data
+        
+        // Fallback to sample data for development
+        console.log('🔄 Falling back to sample data...')
         setProducts(sampleFloraProducts)
         setCategories([])
       } finally {
+        console.log('✅ Loading complete, setting loading to false')
         setLoading(false)
       }
     }
@@ -127,7 +143,8 @@ export default function FloraDistrosPOS() {
 
   // Filter products based on active category and search
   const filteredProducts = products.filter(product => {
-    const matchesCategory = activeCategory === 'all' || getProductCategory(product) === activeCategory
+    const productCategory = determineProductCategory(product)
+    const matchesCategory = activeCategory === 'all' || productCategory === activeCategory
     const matchesSearch = !searchQuery || 
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -222,10 +239,17 @@ export default function FloraDistrosPOS() {
 
   if (loading) {
     return (
-      <div className="h-screen bg-background-primary flex items-center justify-center">
+      <div className="h-screen flex items-center justify-center bg-transparent">
         <div className="text-center">
-          <div className="text-6xl mb-4">🌿</div>
-          <p className="text-luxury-lg text-text-primary font-light">Loading Flora Distro POS...</p>
+          <div className="mb-2">
+            <img 
+              src="/logo.png" 
+              alt="Flora Distro" 
+              className="w-20 h-20 mx-auto pixelate-animation"
+              style={{ background: 'transparent', border: 'none', outline: 'none' }}
+            />
+          </div>
+          <h1 className="flora-distro-text text-animated">Flora Distro</h1>
         </div>
       </div>
     )
@@ -310,7 +334,7 @@ export default function FloraDistrosPOS() {
               </div>
               
               {/* Search Bar for Products */}
-              <div className="mt-3 flex justify-center">
+              <div className="mt-3">
                 <SmartSearch
                   viewMode={viewMode}
                   searchQuery={searchQuery}
@@ -348,7 +372,7 @@ export default function FloraDistrosPOS() {
               </div>
               
               {/* Search Bar for Customers */}
-              <div className="mt-3 flex justify-center">
+              <div className="mt-3">
                 <SmartSearch
                   viewMode={viewMode}
                   searchQuery={searchQuery}

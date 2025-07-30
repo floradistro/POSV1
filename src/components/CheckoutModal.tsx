@@ -2,15 +2,24 @@
 
 import { useState } from 'react'
 import { X, CreditCard, DollarSign, Loader2 } from 'lucide-react'
-import { CartItem } from '@/store/cart'
-import { floraAPI, CreateOrderData } from '@/lib/woocommerce'
+import { FloraProduct, floraAPI, CreateOrderData } from '@/lib/woocommerce'
 import { useMutation } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+
+// Main page cart item interface (different from store cart)
+interface MainPageCartItem {
+  id: number
+  name: string
+  price: string
+  selectedVariation: string
+  cartQuantity: number
+  [key: string]: any // For other product properties
+}
 
 interface CheckoutModalProps {
   isOpen: boolean
   onClose: () => void
-  cartItems: CartItem[]
+  cartItems: MainPageCartItem[]
   total: number
   onSuccess: () => void
 }
@@ -21,9 +30,13 @@ export function CheckoutModal({ isOpen, onClose, cartItems, total, onSuccess }: 
   const [customerEmail, setCustomerEmail] = useState('')
 
   const createOrderMutation = useMutation({
-    mutationFn: (orderData: CreateOrderData) => floraAPI.createOrder(orderData),
-    onSuccess: () => {
-      toast.success('Order completed successfully!')
+    mutationFn: (orderData: CreateOrderData) => {
+      console.log('🚀 Mutation function called with:', orderData)
+      return floraAPI.createOrder(orderData)
+    },
+    onSuccess: (data) => {
+      console.log('✅ Mutation success:', data)
+      toast.success(`Order #${data.id} completed successfully!`)
       onSuccess()
       onClose()
       // Reset form
@@ -32,24 +45,37 @@ export function CheckoutModal({ isOpen, onClose, cartItems, total, onSuccess }: 
       setCustomerEmail('')
     },
     onError: (error) => {
-      toast.error('Failed to create order. Please try again.')
-      console.error('Order creation error:', error)
+      console.error('❌ Mutation error:', error)
+      toast.error(`Failed to create order: ${error.message}`)
     },
   })
 
   const handleCheckout = () => {
+    console.log('🛒 Starting checkout process...')
+    console.log('Payment method:', paymentMethod)
+    console.log('Cart items:', cartItems)
+    console.log('Total:', total)
+    
     const orderData: CreateOrderData = {
       payment_method: paymentMethod,
       payment_method_title: paymentMethod === 'cash' ? 'Cash' : 'Card',
       set_paid: true,
       line_items: cartItems.map((item) => ({
-        product_id: item.product.id,
-        quantity: item.quantity,
-        variation_id: item.variation?.id,
+        product_id: item.id,
+        quantity: item.cartQuantity,
+        // For variations, we'll need to find the variation ID from the selectedVariation string
+        // This is a simplified approach - in production you'd want to store the actual variation ID
+        meta_data: item.selectedVariation ? [
+          {
+            key: 'selected_variation',
+            value: item.selectedVariation
+          }
+        ] : undefined
       })),
       ...(customerEmail && { billing: { email: customerEmail } }),
     }
 
+    console.log('📦 Order data:', orderData)
     createOrderMutation.mutate(orderData)
   }
 
@@ -108,7 +134,10 @@ export function CheckoutModal({ isOpen, onClose, cartItems, total, onSuccess }: 
             <label className="block text-sm font-medium text-text mb-2">Payment Method</label>
             <div className="flex gap-2">
               <button
-                onClick={() => setPaymentMethod('cash')}
+                onClick={() => {
+                  console.log('💰 Cash payment selected')
+                  setPaymentMethod('cash')
+                }}
                 className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg font-medium transition-colors ${
                   paymentMethod === 'cash'
                     ? 'bg-primary text-white'
@@ -119,7 +148,10 @@ export function CheckoutModal({ isOpen, onClose, cartItems, total, onSuccess }: 
                 Cash
               </button>
               <button
-                onClick={() => setPaymentMethod('card')}
+                onClick={() => {
+                  console.log('💳 Card payment selected')
+                  setPaymentMethod('card')
+                }}
                 className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg font-medium transition-colors ${
                   paymentMethod === 'card'
                     ? 'bg-primary text-white'
@@ -165,7 +197,33 @@ export function CheckoutModal({ isOpen, onClose, cartItems, total, onSuccess }: 
               Cancel
             </button>
             <button
-              onClick={handleCheckout}
+              onClick={(e) => {
+                e.preventDefault()
+                console.log('🖱️ Complete Sale button clicked!')
+                
+                const isDisabled = createOrderMutation.isPending || (paymentMethod === 'cash' && (!cashReceived || parseFloat(cashReceived) < total))
+                console.log('Button disabled?', isDisabled)
+                console.log('Payment method:', paymentMethod)
+                console.log('Cash received:', cashReceived)
+                console.log('Total:', total)
+                console.log('Mutation pending?', createOrderMutation.isPending)
+                
+                if (paymentMethod === 'cash') {
+                  console.log('Cash validation:', {
+                    cashReceived,
+                    cashReceivedParsed: parseFloat(cashReceived),
+                    total,
+                    isValid: cashReceived && parseFloat(cashReceived) >= total
+                  })
+                }
+                
+                if (!isDisabled) {
+                  console.log('🎯 Proceeding with checkout...')
+                  handleCheckout()
+                } else {
+                  console.log('⚠️ Button is disabled, not proceeding')
+                }
+              }}
               disabled={
                 createOrderMutation.isPending ||
                 (paymentMethod === 'cash' && (!cashReceived || parseFloat(cashReceived) < total))

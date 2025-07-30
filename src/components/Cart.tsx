@@ -1,16 +1,22 @@
 'use client'
 
-import { CartItem } from '@/store/cart'
 import { Trash2, Plus, Minus, Camera } from 'lucide-react'
 import Image from 'next/image'
 import { CheckoutModal } from './CheckoutModal'
 import { IDScanner } from './IDScanner'
+import { getProductPrice, FloraProduct } from '@/lib/woocommerce'
 import { useState } from 'react'
 
+// Main page cart item interface (matches the one in page.tsx)
+interface MainPageCartItem extends FloraProduct {
+  selectedVariation: string
+  cartQuantity: number
+}
+
 interface CartProps {
-  items: CartItem[]
-  onUpdateQuantity: (productId: number, quantity: number, variationId?: number) => void
-  onRemoveItem: (productId: number, variationId?: number) => void
+  items: MainPageCartItem[]
+  onUpdateQuantity: (index: number, quantity: number) => void
+  onRemoveItem: (productId: number, selectedVariation: string) => void
   onClearCart: () => void
 }
 
@@ -27,8 +33,9 @@ export function Cart({ items, onUpdateQuantity, onRemoveItem, onClearCart }: Car
   }
   
   const subtotal = items.reduce((total, item) => {
-    const price = parseFloat(item.product.sale_price || item.product.price)
-    return total + price * item.quantity
+    const price = getProductPrice(item, item.selectedVariation)
+    console.log(`Cart calculation - Product: ${item.name}, Variation: ${item.selectedVariation}, Price: $${price}`)
+    return total + price * item.cartQuantity
   }, 0)
   
   const tax = subtotal * 0.10 // 10% tax
@@ -100,17 +107,17 @@ export function Cart({ items, onUpdateQuantity, onRemoveItem, onClearCart }: Car
       </div>
       
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {items.map((item) => (
+        {items.map((item, index) => (
           <div
-            key={`${item.product.id}-${item.variation?.id || 0}`}
+            key={`${item.id}-${item.selectedVariation}`}
             className="bg-background rounded-lg p-3 space-y-2"
           >
             <div className="flex gap-3">
-              {item.product.images?.[0] && (
+              {item.images?.[0] && (
                 <div className="relative w-16 h-16 flex-shrink-0">
                   <Image
-                    src={item.product.images[0].src}
-                    alt={item.product.name}
+                    src={item.images[0].src}
+                    alt={item.name}
                     fill
                     className="object-cover rounded"
                   />
@@ -118,19 +125,19 @@ export function Cart({ items, onUpdateQuantity, onRemoveItem, onClearCart }: Car
               )}
               
               <div className="flex-1 min-w-0">
-                <h4 className="font-medium text-text text-sm line-clamp-2">{item.product.name}</h4>
-                {item.variation && (
+                <h4 className="font-medium text-text text-sm line-clamp-2">{item.name}</h4>
+                {item.selectedVariation && (
                   <p className="text-xs text-text-tertiary">
-                    {Object.entries(item.variation.attributes).map(([key, value]) => `${key}: ${value}`).join(', ')}
+                    Variation: {item.selectedVariation}
                   </p>
                 )}
                 <p className="text-primary font-medium text-sm mt-1">
-                  ${(parseFloat(item.product.sale_price || item.product.price) * item.quantity).toFixed(2)}
+                  ${(getProductPrice(item, item.selectedVariation) * item.cartQuantity).toFixed(2)}
                 </p>
               </div>
               
               <button
-                onClick={() => onRemoveItem(item.product.id, item.variation?.id)}
+                onClick={() => onRemoveItem(item.id, item.selectedVariation)}
                 className="text-error hover:text-error/80 transition-colors p-1"
               >
                 <Trash2 className="w-4 h-4" />
@@ -140,21 +147,21 @@ export function Cart({ items, onUpdateQuantity, onRemoveItem, onClearCart }: Car
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1, item.variation?.id)}
+                  onClick={() => onUpdateQuantity(index, item.cartQuantity - 1)}
                   className="bg-background-tertiary hover:bg-background-tertiary/80 p-1 rounded transition-colors"
                 >
                   <Minus className="w-4 h-4" />
                 </button>
-                <span className="text-text font-medium w-8 text-center">{item.quantity}</span>
+                <span className="text-text font-medium w-8 text-center">{item.cartQuantity}</span>
                 <button
-                  onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1, item.variation?.id)}
+                  onClick={() => onUpdateQuantity(index, item.cartQuantity + 1)}
                   className="bg-background-tertiary hover:bg-background-tertiary/80 p-1 rounded transition-colors"
                 >
                   <Plus className="w-4 h-4" />
                 </button>
               </div>
               <p className="text-text-secondary text-sm">
-                ${parseFloat(item.product.sale_price || item.product.price).toFixed(2)} each
+                ${getProductPrice(item, item.selectedVariation).toFixed(2)} each
               </p>
             </div>
           </div>
