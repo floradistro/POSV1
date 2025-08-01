@@ -1,6 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
+import { useEffect } from 'react'
 import { floraAPI, FloraProduct } from '../lib/woocommerce'
 import { ProductCard } from './ProductCard'
 import { Loader2 } from 'lucide-react'
@@ -10,9 +11,10 @@ interface ProductGridProps {
   category: number | null
   searchQuery: string
   onAddToCart: (product: FloraProduct) => void
+  onProductCountChange?: (count: number) => void
 }
 
-export function ProductGrid({ category, searchQuery, onAddToCart }: ProductGridProps) {
+export function ProductGrid({ category, searchQuery, onAddToCart, onProductCountChange }: ProductGridProps) {
   const { store } = useAuth()
 
   const { data: products = [], isLoading, error } = useQuery({
@@ -29,6 +31,22 @@ export function ProductGrid({ category, searchQuery, onAddToCart }: ProductGridP
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes (renamed from cacheTime)
   })
+
+  // Calculate filtered products for consistent hook usage
+  const filteredProducts = products.filter((product: FloraProduct) => {
+    if (searchQuery) {
+      return product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+             product.description.toLowerCase().includes(searchQuery.toLowerCase())
+    }
+    return true
+  })
+
+  // Notify parent about product count changes (must be before any early returns)
+  useEffect(() => {
+    if (onProductCountChange) {
+      onProductCountChange(filteredProducts.length)
+    }
+  }, [filteredProducts.length, onProductCountChange])
 
   if (!store?.id) {
     return (
@@ -55,13 +73,7 @@ export function ProductGrid({ category, searchQuery, onAddToCart }: ProductGridP
     )
   }
 
-  const filteredProducts = products.filter((product: FloraProduct) => {
-    if (searchQuery) {
-      return product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-             product.description.toLowerCase().includes(searchQuery.toLowerCase())
-    }
-    return true
-  })
+
 
   if (filteredProducts.length === 0) {
     return (
@@ -79,21 +91,14 @@ export function ProductGrid({ category, searchQuery, onAddToCart }: ProductGridP
   }
 
   return (
-    <div className="space-y-4">
-      {store.name && (
-        <div className="text-sm text-text-secondary bg-background-secondary p-3 rounded-lg sticky top-0 z-10">
-          Showing {filteredProducts.length} products available at <strong>{store.name}</strong>
-        </div>
-      )}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pb-8">
-        {filteredProducts.map((product: FloraProduct) => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            onAddToCart={onAddToCart}
-          />
-        ))}
-      </div>
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-0 pb-8">
+      {filteredProducts.map((product: FloraProduct) => (
+        <ProductCard
+          key={product.id}
+          product={product}
+          onAddToCart={onAddToCart}
+        />
+      ))}
     </div>
   )
 } 

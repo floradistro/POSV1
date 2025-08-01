@@ -12,9 +12,10 @@ interface StatusBarProps {
     role: string
   }
   cartItemCount?: number
+  productCount?: number
 }
 
-export function StatusBar({ store, user, cartItemCount = 0 }: StatusBarProps) {
+export function StatusBar({ store, user, cartItemCount = 0, productCount }: StatusBarProps) {
   const [currentTime, setCurrentTime] = useState(new Date())
   const [connectionStatus, setConnectionStatus] = useState<'online' | 'offline' | 'syncing'>('online')
 
@@ -90,6 +91,13 @@ export function StatusBar({ store, user, cartItemCount = 0 }: StatusBarProps) {
         {store && (
           <div className="flex items-center">
             <span>{store.name}</span>
+          </div>
+        )}
+
+        {/* Product Count */}
+        {productCount !== undefined && store && (
+          <div className="flex items-center">
+            <span>{productCount} products available</span>
           </div>
         )}
 

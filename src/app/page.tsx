@@ -34,6 +34,7 @@ export default function FloraDistrosPOS() {
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [assignedCustomer, setAssignedCustomer] = useState<Customer | null>(null)
+  const [productCount, setProductCount] = useState<number>(0)
 
   const mainCategories = [
     { name: 'All', slug: 'all', id: null },
@@ -46,6 +47,25 @@ export default function FloraDistrosPOS() {
 
   const handleAddToCart = (product: FloraProduct, selectedVariation?: string) => {
     const variation = selectedVariation || 'default'
+    
+    // Calculate the correct price based on the selected variation
+    let price = parseFloat(product.sale_price || product.price || '0')
+    
+    if (variation && variation !== 'default') {
+      if (product.mli_product_type === 'weight' && product.pricing_tiers) {
+        if (variation.includes('preroll-')) {
+          const count = variation.replace('preroll-', '')
+          price = product.preroll_pricing_tiers?.[count] || price
+        } else if (variation.includes('flower-')) {
+          const grams = variation.replace('flower-', '')
+          price = product.pricing_tiers[grams] || price
+        }
+      } else if (product.mli_product_type === 'quantity' && product.pricing_tiers) {
+        const qty = variation.replace('qty-', '')
+        price = product.pricing_tiers[qty] || price
+      }
+    }
+    
     const existingItemIndex = cartItems.findIndex(
       item => item.id === product.id && item.selectedVariation === variation
     )
@@ -57,6 +77,7 @@ export default function FloraDistrosPOS() {
     } else {
       const newItem: CartItem = { 
         ...product, 
+        price: price.toString(), // Override the price with the variation-specific price
         cartQuantity: 1, 
         selectedVariation: variation 
       }
@@ -140,11 +161,12 @@ export default function FloraDistrosPOS() {
         {/* Main Content Area */}
         <div className="flex-1 flex min-h-0">
           {/* Products Grid */}
-          <div className="flex-1 p-6 overflow-y-auto">
+          <div className="flex-1 px-0 py-6 overflow-y-auto">
             <ProductGrid
               category={activeCategory === 'all' ? null : mainCategories.find(cat => cat.slug === activeCategory)?.id || null}
               searchQuery={searchQuery}
               onAddToCart={handleAddToCart}
+              onProductCountChange={setProductCount}
             />
           </div>
 
@@ -164,6 +186,7 @@ export default function FloraDistrosPOS() {
           store={store ? { name: store.name, address: store.address } : undefined}
           user={user ? { name: `${user.firstName} ${user.lastName}`, role: user.role } : undefined}
           cartItemCount={cartItems.length}
+          productCount={productCount}
         />
       </div>
     </AppWrapper>

@@ -45,6 +45,15 @@ export interface FloraProduct {
   // Location-specific fields from Addify
   location_stock?: number
   location_name?: string
+  // Addify Multi-Location Inventory fields
+  mli_product_type?: 'weight' | 'quantity'
+  mli_weight_options?: string // comma-separated weight options
+  mli_preroll_conversion?: number
+  mli_pricing_tiers?: string // JSON string with pricing tiers
+  // Parsed fields for easier use
+  weight_options?: number[] // parsed from mli_weight_options
+  pricing_tiers?: Record<string, number> // parsed from mli_pricing_tiers (flower pricing)
+  preroll_pricing_tiers?: Record<string, number> // parsed preroll pricing from mli_pricing_tiers
 }
 
 export interface FloraStore {
@@ -204,8 +213,8 @@ export class FloraAPI {
       searchParams.set('orderby', 'id')
       searchParams.set('order', 'asc')
       
-      // Reduce data transfer by excluding heavy fields
-      searchParams.set('_fields', 'id,name,slug,description,short_description,price,regular_price,sale_price,stock_quantity,manage_stock,in_stock,categories,images,type,status')
+      // Include meta fields for Addify pricing tiers and inventory type
+      searchParams.set('_fields', 'id,name,slug,description,short_description,price,regular_price,sale_price,stock_quantity,manage_stock,in_stock,categories,images,type,status,meta_data')
       
       // Fetch products from WooCommerce
       console.log(`⏱️ Starting WooCommerce products fetch...`)
@@ -359,6 +368,46 @@ export class FloraAPI {
 
   // Map WooCommerce product to FloraProduct interface
   private mapToFloraProduct(product: any): FloraProduct {
+    // Helper function to get meta value
+    const getMetaValue = (key: string): string | undefined => {
+      const meta = product.meta_data?.find((item: any) => item.key === key)
+      return meta?.value
+    }
+
+    // Parse Addify meta data
+    const mli_product_type = getMetaValue('mli_product_type') as 'weight' | 'quantity' | undefined
+    const mli_weight_options = getMetaValue('mli_weight_options')
+    const mli_preroll_conversion = parseFloat(getMetaValue('mli_preroll_conversion') || '0.7')
+    const mli_pricing_tiers = getMetaValue('mli_pricing_tiers')
+
+    // Parse weight options into array
+    const weight_options = mli_weight_options 
+      ? mli_weight_options.split(',').map(w => parseFloat(w.trim())).filter(w => !isNaN(w))
+      : undefined
+
+    // Parse pricing tiers JSON (handle both simple and nested structures)
+    let pricing_tiers: Record<string, number> | undefined
+    let preroll_pricing_tiers: Record<string, number> | undefined
+    if (mli_pricing_tiers) {
+      try {
+        const parsed = JSON.parse(mli_pricing_tiers)
+        // Check if it's a nested structure (like flower products)
+        if (parsed.flower && typeof parsed.flower === 'object') {
+          // Use the flower pricing for flower products
+          pricing_tiers = parsed.flower
+          // Also extract preroll pricing if available
+          if (parsed.preroll && typeof parsed.preroll === 'object') {
+            preroll_pricing_tiers = parsed.preroll
+          }
+        } else if (typeof parsed === 'object' && !Array.isArray(parsed)) {
+          // Simple structure (like concentrates)
+          pricing_tiers = parsed
+        }
+      } catch (e) {
+        console.warn(`Failed to parse pricing tiers for product ${product.id}:`, mli_pricing_tiers)
+      }
+    }
+
     return {
       id: product.id,
       name: product.name,
@@ -374,7 +423,16 @@ export class FloraAPI {
       categories: product.categories || [],
       images: product.images || [],
       type: product.type || 'simple',
-      status: product.status || 'publish'
+      status: product.status || 'publish',
+      // Addify Multi-Location Inventory fields
+      mli_product_type,
+      mli_weight_options,
+      mli_preroll_conversion,
+      mli_pricing_tiers,
+      // Parsed fields for easier use
+      weight_options,
+      pricing_tiers,
+      preroll_pricing_tiers
     }
   }
 }

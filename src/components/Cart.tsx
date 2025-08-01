@@ -7,6 +7,28 @@ import { IDScanner } from './IDScanner'
 import { FloraProduct } from '../lib/woocommerce'
 import { useState } from 'react'
 
+// Helper function to format variation display
+function formatVariationDisplay(variation: string): string {
+  if (!variation || variation === 'default') return ''
+  
+  if (variation.includes('flower-')) {
+    const grams = variation.replace('flower-', '')
+    return `${grams}g Flower`
+  }
+  
+  if (variation.includes('preroll-')) {
+    const count = variation.replace('preroll-', '')
+    return `${count}x Pre-rolls`
+  }
+  
+  if (variation.includes('qty-')) {
+    const qty = variation.replace('qty-', '')
+    return `${qty} units`
+  }
+  
+  return variation
+}
+
 // Main page cart item interface (matches the one in page.tsx)
 interface CartItem extends FloraProduct {
   selectedVariation: string
@@ -203,8 +225,10 @@ export function Cart({
                   <h3 className="text-sm font-medium text-text-primary mb-1 line-clamp-2">
                     {item.name}
                   </h3>
-                  {item.selectedVariation !== 'default' && (
-                    <p className="text-xs text-text-secondary mb-1">{item.selectedVariation}</p>
+                  {formatVariationDisplay(item.selectedVariation) && (
+                    <p className="text-xs text-text-secondary mb-1">
+                      {formatVariationDisplay(item.selectedVariation)}
+                    </p>
                   )}
                   <p className="text-primary font-medium text-sm mt-1">
                     ${(parseFloat(item.price) * item.cartQuantity).toFixed(2)}
