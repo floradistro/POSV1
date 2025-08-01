@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { RefreshCw } from 'lucide-react'
 import { ProductGrid } from '../components/ProductGrid'
 import { Cart } from '../components/Cart'
 import { AppWrapper } from '../components/AppWrapper'
 import { StatusBar } from '../components/StatusBar'
+import { TopStatusBar } from '../components/TopStatusBar'
 import SettingsPanel from '../components/SettingsPanel'
 import { useAuth } from '../contexts/AuthContext'
 import { useLocation } from '../contexts/LocationContext'
@@ -35,11 +37,13 @@ interface Customer {
 export default function FloraDistrosPOS() {
   const { store, user, logout } = useAuth()
   const { syncWithStore } = useLocation()
+  const queryClient = useQueryClient()
   const [activeCategory, setActiveCategory] = useState('all')
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [assignedCustomer, setAssignedCustomer] = useState<Customer | null>(null)
   const [productCount, setProductCount] = useState<number>(0)
+  const [isProductsLoading, setIsProductsLoading] = useState<boolean>(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isCustomerViewOpen, setIsCustomerViewOpen] = useState(false)
@@ -158,7 +162,7 @@ export default function FloraDistrosPOS() {
     <AppWrapper>
       <div className="h-screen bg-background-primary text-text-primary flex flex-col relative">
         {/* Menu Drawer */}
-        <div className={`fixed inset-y-0 left-0 z-50 w-80 bg-background-secondary border-r border-border transform transition-transform duration-300 ease-in-out ${
+        <div className={`fixed inset-y-0 left-0 z-50 w-80 bg-background-secondary border-r border-white/[0.04] transform transition-transform duration-300 ease-in-out ${
           isMenuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}>
           <div className="p-4">
@@ -202,7 +206,7 @@ export default function FloraDistrosPOS() {
                 Settings
               </button>
               
-              <div className="border-t border-border my-4"></div>
+              <div className="border-t border-white/[0.04] my-4"></div>
               
               <button 
                 onClick={handleLogout}
@@ -224,8 +228,11 @@ export default function FloraDistrosPOS() {
           />
         )}
 
+        {/* Top Status Bar */}
+        <TopStatusBar isLoading={isProductsLoading} />
+
         {/* Header */}
-        <div className="bg-background-secondary border-b border-border px-2 py-1 flex-shrink-0 relative z-30">
+                  <div className="bg-background-secondary border-b border-white/[0.04] px-2 py-1 flex-shrink-0 relative z-30">
           <div className="flex items-center justify-between gap-2">
             {/* Logo */}
             <div className="flex-shrink-0">
@@ -279,14 +286,23 @@ export default function FloraDistrosPOS() {
             </button>
 
             {/* Search */}
-            <div className="flex-1 max-w-sm">
+            <div className="flex-1 max-w-sm flex items-center gap-2">
               <input
                 type="text"
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-3 py-1.5 bg-background-tertiary border border-border rounded text-sm text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="flex-1 px-3 py-1.5 bg-background-tertiary border border-white/[0.04] rounded text-sm text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary"
               />
+              <button
+                onClick={() => {
+                  window.location.reload()
+                }}
+                className="p-1.5 bg-background-tertiary hover:bg-background-secondary border border-white/[0.04] rounded text-text-secondary hover:text-text-primary transition-colors"
+                title="Refresh app"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
             </div>
 
             {/* Cart Summary */}
@@ -303,8 +319,8 @@ export default function FloraDistrosPOS() {
         <div className="flex-1 flex min-h-0">
           {/* Customer View Panel */}
           {isCustomerViewOpen && (
-            <div className="w-80 bg-background-secondary border-r border-border flex-shrink-0">
-              <div className="p-4 border-b border-border">
+            <div className="w-80 bg-background-secondary border-r border-white/[0.04] flex-shrink-0">
+                              <div className="p-4 border-b border-white/[0.04]">
                 <h3 className="text-lg font-semibold text-text-primary mb-3">Customer Directory</h3>
                 <div className="relative">
                   <input
@@ -312,7 +328,7 @@ export default function FloraDistrosPOS() {
                     placeholder="Search customers..."
                     value={customerSearchQuery}
                     onChange={(e) => setCustomerSearchQuery(e.target.value)}
-                    className="w-full px-3 py-2 bg-background-tertiary border border-border rounded text-sm text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-full px-3 py-2 bg-background-tertiary border border-white/[0.04] rounded text-sm text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                   <svg className="absolute right-3 top-2.5 w-4 h-4 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -415,6 +431,7 @@ export default function FloraDistrosPOS() {
               searchQuery={searchQuery}
               onAddToCart={handleAddToCart}
               onProductCountChange={setProductCount}
+              onLoadingChange={setIsProductsLoading}
               isCustomerViewOpen={isCustomerViewOpen}
             />
           </div>

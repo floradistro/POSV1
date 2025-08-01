@@ -17,27 +17,12 @@ interface StatusBarProps {
 
 export function StatusBar({ store, user, cartItemCount = 0, productCount }: StatusBarProps) {
   const [currentTime, setCurrentTime] = useState(new Date())
-  const [connectionStatus, setConnectionStatus] = useState<'online' | 'offline' | 'syncing'>('online')
-
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date())
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [])
-
-  useEffect(() => {
-    const handleOnline = () => setConnectionStatus('online')
-    const handleOffline = () => setConnectionStatus('offline')
-
-    window.addEventListener('online', handleOnline)
-    window.addEventListener('offline', handleOffline)
-
-    return () => {
-      window.removeEventListener('online', handleOnline)
-      window.removeEventListener('offline', handleOffline)
-    }
   }, [])
 
   const formatTime = (date: Date) => {
@@ -49,44 +34,12 @@ export function StatusBar({ store, user, cartItemCount = 0, productCount }: Stat
     })
   }
 
-  const getConnectionIcon = () => {
-    switch (connectionStatus) {
-      case 'online':
-        return '●'
-      case 'offline':
-        return '●'
-      case 'syncing':
-        return '◐'
-      default:
-        return '●'
-    }
-  }
 
-  const getConnectionColor = () => {
-    switch (connectionStatus) {
-      case 'online':
-        return 'text-green-400'
-      case 'offline':
-        return 'text-red-400'
-      case 'syncing':
-        return 'text-yellow-400'
-      default:
-        return 'text-text-secondary'
-    }
-  }
 
   return (
     <div className="bg-vscode-bgSecondary border-t border-border-light px-2 py-1 flex items-center justify-between text-xs text-text-secondary flex-shrink-0">
       {/* Left Section */}
       <div className="flex items-center space-x-2">
-        {/* Connection Status */}
-        <div className="flex items-center space-x-0.5">
-          <span className={`${getConnectionColor()} text-xs`}>
-            {getConnectionIcon()}
-          </span>
-          <span className="capitalize">{connectionStatus}</span>
-        </div>
-
         {/* Store Info */}
         {store && (
           <div className="flex items-center">

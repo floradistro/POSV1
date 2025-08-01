@@ -350,9 +350,9 @@ export function Cart({
   }
 
   return (
-    <div className="w-80 bg-background-primary border-l border-border flex flex-col">
+    <div className="w-80 bg-background-primary border-l border-white/[0.04] flex flex-col">
       {/* Header */}
-      <div className="p-6 border-b border-border">
+              <div className="px-2 py-6 border-b border-white/[0.04]">
         {isCheckoutView ? (
           <div className="flex items-center gap-3 mb-2">
             <button
@@ -413,7 +413,7 @@ export function Cart({
       {isCheckoutView ? (
         /* Checkout Form View */
         <form onSubmit={handleCheckoutSubmit} className="flex-1 flex flex-col">
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="flex-1 overflow-y-auto px-2 py-6 space-y-6">
             {/* Order Summary */}
             <div className="space-y-3">
               <h3 className="font-medium text-text-primary">Order Summary</h3>
@@ -552,7 +552,7 @@ export function Cart({
       ) : (
         <>
           {/* Cart Items */}
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto px-2 py-6">
             <div className="space-y-4">
               {items.map((item) => (
                 <div key={`${item.id}-${item.selectedVariation}`} className="flex gap-3">
@@ -616,7 +616,7 @@ export function Cart({
           </div>
 
           {/* Footer */}
-          <div className="p-6 border-t border-border">
+          <div className="px-2 py-6 border-t border-white/[0.04]">
             <div className="space-y-2 mb-4">
               <div className="flex justify-between text-sm">
                 <span className="text-text-secondary">Subtotal</span>
@@ -635,7 +635,7 @@ export function Cart({
                   <span className="text-text-primary">${tax.toFixed(2)}</span>
                 </div>
               )}
-              <div className="flex justify-between text-base font-semibold pt-2 border-t border-border">
+              <div className="flex justify-between text-base font-semibold pt-2 border-t border-white/[0.04]">
                 <span className="text-text-primary">Total</span>
                 <span className="text-text-primary">${total.toFixed(2)}</span>
               </div>
@@ -643,7 +643,7 @@ export function Cart({
 
             <button
               onClick={() => setIsCheckoutView(true)}
-              className="w-full bg-primary hover:bg-primary/90 text-white py-3 px-4 rounded-lg font-medium transition-colors"
+                              className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 px-4 rounded-full font-medium transition-colors"
             >
               Checkout
             </button>

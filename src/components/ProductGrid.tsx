@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { floraAPI, FloraProduct } from '../lib/woocommerce'
 import { ProductCard } from './ProductCard'
 import { Loader2 } from 'lucide-react'
@@ -12,11 +12,13 @@ interface ProductGridProps {
   searchQuery: string
   onAddToCart: (product: FloraProduct) => void
   onProductCountChange?: (count: number) => void
+  onLoadingChange?: (loading: boolean) => void
   isCustomerViewOpen?: boolean
 }
 
-export function ProductGrid({ category, searchQuery, onAddToCart, onProductCountChange, isCustomerViewOpen = false }: ProductGridProps) {
+export function ProductGrid({ category, searchQuery, onAddToCart, onProductCountChange, onLoadingChange, isCustomerViewOpen = false }: ProductGridProps) {
   const { store } = useAuth()
+  const [globalSelectedProduct, setGlobalSelectedProduct] = useState<{ productId: number; variation: string } | null>(null)
 
   const { data: products = [], isLoading, error } = useQuery({
     queryKey: ['products', category, searchQuery, store?.id],
@@ -48,6 +50,13 @@ export function ProductGrid({ category, searchQuery, onAddToCart, onProductCount
       onProductCountChange(filteredProducts.length)
     }
   }, [filteredProducts.length, onProductCountChange])
+
+  // Notify parent about loading state changes
+  useEffect(() => {
+    if (onLoadingChange) {
+      onLoadingChange(isLoading)
+    }
+  }, [isLoading, onLoadingChange])
 
   if (!store?.id) {
     return (
@@ -102,6 +111,8 @@ export function ProductGrid({ category, searchQuery, onAddToCart, onProductCount
           key={product.id}
           product={product}
           onAddToCart={onAddToCart}
+          globalSelectedProduct={globalSelectedProduct}
+          setGlobalSelectedProduct={setGlobalSelectedProduct}
         />
       ))}
     </div>

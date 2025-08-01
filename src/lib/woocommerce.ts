@@ -54,6 +54,14 @@ export interface FloraProduct {
   weight_options?: number[] // parsed from mli_weight_options
   pricing_tiers?: Record<string, number> // parsed from mli_pricing_tiers (flower pricing)
   preroll_pricing_tiers?: Record<string, number> // parsed preroll pricing from mli_pricing_tiers
+  // ACF (Advanced Custom Fields) support
+  acf?: Record<string, any> // All ACF fields
+  acf_fields?: Array<{
+    key: string
+    label: string
+    value: any
+    type: string
+  }> // Parsed and formatted ACF fields
 }
 
 export interface FloraStore {
@@ -277,7 +285,8 @@ export class FloraAPI {
       searchParams.set('orderby', 'id')
       searchParams.set('order', 'asc')
       
-      // Include meta fields for Addify pricing tiers and inventory type
+      // Include meta fields for Addify pricing tiers and inventory type, plus ACF fields
+      // Note: ACF fields might not be available on all WooCommerce installations
       searchParams.set('_fields', 'id,name,slug,description,short_description,price,regular_price,sale_price,stock_quantity,manage_stock,in_stock,categories,images,type,status,meta_data')
       
       // Fetch products from WooCommerce
@@ -297,6 +306,9 @@ export class FloraAPI {
 
       // Map products first
       const mappedProducts = products.map(this.mapToFloraProduct)
+      
+             // ACF fields disabled for now to ensure fast product loading
+       console.log(`📝 ACF fields disabled - products will load without custom fields`)
       
       // Add default image for products without images
       const productsWithDefaultImages = mappedProducts.map(product => {
@@ -957,6 +969,176 @@ export class FloraAPI {
     }
   }
 
+  // Async version that doesn't block main product loading
+  private async enrichProductsWithACFAsync(products: FloraProduct[]): Promise<void> {
+    // Just call the main method but don't await it in the main flow
+    return this.enrichProductsWithACF(products)
+  }
+
+  // Enrich products with ACF fields via separate API calls
+  private async enrichProductsWithACF(products: FloraProduct[]): Promise<void> {
+    if (products.length === 0) return
+    
+    console.log(`🔍 Testing ACF availability with first product (ID: ${products[0].id})...`)
+    
+    try {
+      // Test with first product to see if ACF is available
+      const testResponse = await fetch(`${this.baseUrl}${ENDPOINTS.WC_PRODUCTS}/${products[0].id}`, {
+        headers: {
+          'Authorization': createAuthHeader(),
+          'Content-Type': 'application/json',
+        }
+      })
+      
+      if (!testResponse.ok) {
+        throw new Error(`ACF test request failed: ${testResponse.status}`)
+      }
+      
+      const testProduct = await testResponse.json()
+      console.log(`🔍 Sample product response keys:`, Object.keys(testProduct))
+      
+      if (!testProduct.acf && !testProduct.meta_data) {
+        console.log(`📝 Neither ACF nor meta_data available - ACF plugin may not be installed`)
+        return
+      }
+      
+      if (testProduct.acf) {
+        console.log(`✅ ACF fields detected! Sample ACF keys:`, Object.keys(testProduct.acf))
+      } else {
+        console.log(`📝 No direct ACF field, checking meta_data for ACF fields...`)
+        const acfMeta = testProduct.meta_data?.filter((meta: any) => meta.key.startsWith('_') === false && meta.key !== 'mli_product_type')
+        if (acfMeta && acfMeta.length > 0) {
+          console.log(`✅ Found ${acfMeta.length} potential ACF fields in meta_data`)
+        } else {
+          console.log(`📝 No ACF fields found in meta_data either`)
+          return
+        }
+      }
+      
+      // Fetch ACF fields for all products (limit concurrent requests to avoid overwhelming server)
+      const BATCH_SIZE = 5
+      let enrichedCount = 0
+      
+      for (let i = 0; i < products.length; i += BATCH_SIZE) {
+        const batch = products.slice(i, i + BATCH_SIZE)
+        
+        const batchPromises = batch.map(async (product) => {
+          try {
+            const acfResponse = await fetch(`${this.baseUrl}${ENDPOINTS.WC_PRODUCTS}/${product.id}`, {
+              headers: {
+                'Authorization': createAuthHeader(),
+                'Content-Type': 'application/json',
+              }
+            })
+            
+            if (acfResponse.ok) {
+              const acfData = await acfResponse.json()
+              
+              if (acfData.acf && Object.keys(acfData.acf).length > 0) {
+                product.acf = acfData.acf
+                product.acf_fields = this.processACFFields(acfData.acf)
+                enrichedCount++
+              } else if (acfData.meta_data) {
+                // Extract ACF fields from meta_data if direct ACF not available
+                const acfFromMeta: Record<string, any> = {}
+                acfData.meta_data.forEach((meta: any) => {
+                  // Skip internal fields and MLI fields
+                  if (!meta.key.startsWith('_') && 
+                      !meta.key.startsWith('mli_') && 
+                      meta.key !== 'mli_product_type' &&
+                      meta.value !== null && 
+                      meta.value !== '') {
+                    acfFromMeta[meta.key] = meta.value
+                  }
+                })
+                
+                if (Object.keys(acfFromMeta).length > 0) {
+                  product.acf = acfFromMeta
+                  product.acf_fields = this.processACFFields(acfFromMeta)
+                  enrichedCount++
+                }
+              }
+            }
+          } catch (error) {
+            console.warn(`⚠️ Failed to fetch ACF for product ${product.id}:`, error)
+          }
+        })
+        
+        await Promise.all(batchPromises)
+        
+        // Small delay between batches to be nice to the server
+        if (i + BATCH_SIZE < products.length) {
+          await new Promise(resolve => setTimeout(resolve, 100))
+        }
+      }
+      
+      console.log(`📊 Successfully enriched ${enrichedCount}/${products.length} products with ACF fields`)
+      
+      // Log sample of enriched products for debugging
+      const sampleEnriched = products.filter(p => p.acf_fields && p.acf_fields.length > 0).slice(0, 2)
+      if (sampleEnriched.length > 0) {
+        console.log(`🔍 Sample enriched products:`, sampleEnriched.map(p => ({
+          id: p.id,
+          name: p.name,
+          acf_field_count: p.acf_fields?.length,
+          acf_fields: p.acf_fields?.map(f => ({ key: f.key, label: f.label, type: f.type }))
+        })))
+      }
+      
+    } catch (error) {
+      console.warn(`⚠️ ACF enrichment failed:`, error)
+      throw error // Re-throw to be caught by the calling code
+    }
+  }
+
+  // Process ACF fields for better display
+  private processACFFields(acf: Record<string, any>): Array<{ key: string; label: string; value: any; type: string }> {
+    if (!acf || typeof acf !== 'object') return []
+    
+    const acfFields = []
+    
+    for (const [key, value] of Object.entries(acf)) {
+      if (value === null || value === undefined || value === '') continue
+      
+      // Determine field type based on value
+      let type = 'text'
+      let displayValue = value
+      
+      if (typeof value === 'boolean') {
+        type = 'boolean'
+        displayValue = value ? 'Yes' : 'No'
+      } else if (Array.isArray(value)) {
+        type = 'array'
+        displayValue = value.join(', ')
+      } else if (typeof value === 'object' && value.url) {
+        type = 'image'
+        displayValue = value
+      } else if (typeof value === 'object') {
+        type = 'object'
+        displayValue = JSON.stringify(value, null, 2)
+      } else if (typeof value === 'number') {
+        type = 'number'
+      } else if (typeof value === 'string' && value.includes('http')) {
+        type = 'url'
+      }
+      
+      // Convert snake_case to readable labels
+      const label = key
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ')
+      
+      acfFields.push({
+        key,
+        label,
+        value: displayValue,
+        type
+      })
+    }
+    
+    return acfFields
+  }
+
   // Map WooCommerce product to FloraProduct interface
   private mapToFloraProduct(product: any): FloraProduct {
     // Helper function to get meta value
@@ -1023,7 +1205,10 @@ export class FloraAPI {
       // Parsed fields for easier use
       weight_options,
       pricing_tiers,
-      preroll_pricing_tiers
+      preroll_pricing_tiers,
+      // ACF fields (will be populated later if available)
+      acf: undefined,
+      acf_fields: []
     }
   }
 }
