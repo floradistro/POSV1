@@ -256,6 +256,16 @@ export function Cart({
       })
     }
 
+    // Add taxes as fee lines so they show up in WooCommerce admin
+    if (taxBreakdown && taxBreakdown.length > 0) {
+      orderData.fee_lines = taxBreakdown.map(taxItem => ({
+        name: taxItem.name,
+        total: taxItem.amount.toFixed(2),
+        tax_status: 'none', // Don't tax the tax
+        tax_class: ''
+      }))
+    }
+
     // Add customer ID to order if customer is assigned
     if (assignedCustomer) {
       const customerId = parseInt(assignedCustomer.id)

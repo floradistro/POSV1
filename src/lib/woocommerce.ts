@@ -123,6 +123,17 @@ export interface CreateOrderData {
       value: string
     }>
   }>
+  tax_lines?: Array<{
+    name: string
+    tax_total: string
+    shipping_tax_total?: string
+  }>
+  fee_lines?: Array<{
+    name: string
+    total: string
+    tax_status?: string
+    tax_class?: string
+  }>
 }
 
 export interface FloraCustomer {
