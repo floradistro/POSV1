@@ -284,6 +284,8 @@ export function Cart({
     setIsScannerOpen(false)
     
     try {
+      console.log('🆔 Raw scanned ID data:', data)
+      
       // Extract key information from scanned ID
       const firstName = data.firstName || ''
       const lastName = data.lastName || ''
@@ -294,25 +296,51 @@ export function Cart({
         .filter(Boolean)
         .join(', ')
       
-      console.log('Searching for existing customer with:', { firstName, lastName, dateOfBirth })
+      console.log('📋 Extracted data:', { firstName, lastName, email, phone, dateOfBirth, address })
+      console.log('🔍 Searching for existing customer with:', { firstName, lastName, dateOfBirth })
       
       // Search for existing customer by name and date of birth
       const searchQuery = `${firstName} ${lastName}`.trim()
+      console.log('🔍 Searching for customer with query:', searchQuery)
+      
       const existingCustomers = await floraAPI.getCustomers({
         search: searchQuery,
         per_page: 50
       })
       
-      // Try to find exact match by name and date of birth
+      console.log('📋 Found existing customers:', existingCustomers.length)
+      existingCustomers.forEach((customer, index) => {
+        console.log(`Customer ${index + 1}:`, {
+          id: customer.id,
+          name: `${customer.first_name} ${customer.last_name}`,
+          email: customer.email
+        })
+      })
+      
+      // Try to find exact match by name (more flexible matching)
       let matchedCustomer = null
-      if (dateOfBirth) {
+      if (existingCustomers.length > 0) {
         matchedCustomer = existingCustomers.find(customer => {
           const customerName = `${customer.first_name} ${customer.last_name}`.trim().toLowerCase()
           const scannedName = searchQuery.toLowerCase()
-          // For now, match by name - could enhance with DOB matching if stored in customer meta
+          console.log('🔍 Comparing:', { customerName, scannedName })
           return customerName === scannedName
         })
+        
+        // If no exact match, try partial matching
+        if (!matchedCustomer) {
+          matchedCustomer = existingCustomers.find(customer => {
+            const customerFirstName = customer.first_name?.toLowerCase() || ''
+            const customerLastName = customer.last_name?.toLowerCase() || ''
+            const scannedFirstName = firstName.toLowerCase()
+            const scannedLastName = lastName.toLowerCase()
+            
+            return customerFirstName.includes(scannedFirstName) && customerLastName.includes(scannedLastName)
+          })
+        }
       }
+      
+      console.log('🎯 Matched customer:', matchedCustomer ? `${matchedCustomer.first_name} ${matchedCustomer.last_name}` : 'None')
       
       if (matchedCustomer) {
         // Customer exists, assign them to the cart
@@ -339,33 +367,41 @@ export function Cart({
         
         toast.success(`Customer ${firstName} ${lastName} assigned to cart`)
       } else {
-        // Customer doesn't exist, create new one
-        console.log('Creating new customer with scanned data')
-        
-        const newCustomerData = {
-          first_name: firstName,
-          last_name: lastName,
-          email: email || `${firstName.toLowerCase()}${lastName.toLowerCase()}@example.com`, // Placeholder email
-          billing: {
-            first_name: firstName,
-            last_name: lastName,
-            address_1: data.streetAddress || '',
-            address_2: data.streetAddress2 || '',
-            city: data.city || '',
-            state: data.state || '',
-            postcode: data.zipCode || '',
-            phone: phone
-          },
-          shipping: {
-            first_name: firstName,
-            last_name: lastName,
-            address_1: data.streetAddress || '',
-            address_2: data.streetAddress2 || '',
-            city: data.city || '',
-            state: data.state || '',
-            postcode: data.zipCode || ''
-          }
-        }
+                 // Customer doesn't exist, create new one
+         console.log('Creating new customer with scanned data')
+         
+         // Generate a unique email to avoid conflicts
+         const timestamp = Date.now()
+         const generatedEmail = email || `${firstName.toLowerCase()}.${lastName.toLowerCase()}.${timestamp}@scanned-id.local`
+         
+         const newCustomerData = {
+           first_name: firstName,
+           last_name: lastName,
+           email: generatedEmail,
+           billing: {
+             first_name: firstName,
+             last_name: lastName,
+             address_1: data.streetAddress || '',
+             address_2: data.streetAddress2 || '',
+             city: data.city || '',
+             state: data.state || '',
+             postcode: data.zipCode || '',
+             phone: phone,
+             country: 'US' // Add required country field
+           },
+           shipping: {
+             first_name: firstName,
+             last_name: lastName,
+             address_1: data.streetAddress || '',
+             address_2: data.streetAddress2 || '',
+             city: data.city || '',
+             state: data.state || '',
+             postcode: data.zipCode || '',
+             country: 'US' // Add required country field
+           }
+         }
+         
+         console.log('📝 Customer data to create:', newCustomerData)
         
                  // Create customer via WooCommerce API
          const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/wp-json/wc/v3/customers`, {
@@ -377,11 +413,14 @@ export function Cart({
            body: JSON.stringify(newCustomerData)
          })
         
-        if (response.ok) {
-          const createdCustomer = await response.json()
-          console.log('Created new customer:', createdCustomer)
-          
-                     // Assign the new customer to cart
+                 console.log('📡 API Response status:', response.status)
+         console.log('📡 API Response headers:', Object.fromEntries(response.headers.entries()))
+         
+         if (response.ok) {
+           const createdCustomer = await response.json()
+           console.log('✅ Created new customer:', createdCustomer)
+           
+           // Assign the new customer to cart
            onAssignCustomer({
              id: createdCustomer.id.toString(),
              firstName: firstName,
@@ -396,13 +435,26 @@ export function Cart({
              status: 'active',
              avatar: createdCustomer.avatar_url
            })
-          
-          toast.success(`New customer ${firstName} ${lastName} created and assigned to cart`)
-        } else {
-          const errorData = await response.json()
-          console.error('Failed to create customer:', errorData)
-          toast.error(`Failed to create customer: ${errorData.message || 'Unknown error'}`)
-        }
+           
+           toast.success(`New customer ${firstName} ${lastName} created and assigned to cart`)
+         } else {
+           const responseText = await response.text()
+           console.error('❌ Failed to create customer - Status:', response.status)
+           console.error('❌ Response text:', responseText)
+           
+           let errorData
+           try {
+             errorData = JSON.parse(responseText)
+           } catch (e) {
+             errorData = { message: responseText }
+           }
+           
+           console.error('❌ Parsed error data:', errorData)
+           
+           // Show more detailed error message
+           const errorMessage = errorData.message || errorData.error || `HTTP ${response.status}: ${response.statusText}`
+           toast.error(`Failed to create customer: ${errorMessage}`)
+         }
       }
     } catch (error) {
       console.error('Error processing scanned ID:', error)
