@@ -279,10 +279,135 @@ export function Cart({
     return isNaN(received) ? 0 : Math.max(0, received - total)
   }
 
-  const handleScanResult = (data: any) => {
+  const handleScanResult = async (data: any) => {
     console.log('Scanned customer data:', data)
     setIsScannerOpen(false)
-    // Process the scanned data here
+    
+    try {
+      // Extract key information from scanned ID
+      const firstName = data.firstName || ''
+      const lastName = data.lastName || ''
+      const email = data.email || '' // IDs don't usually have email, but we'll check
+      const phone = data.phone || '' // IDs don't usually have phone, but we'll check
+      const dateOfBirth = data.dateOfBirth || ''
+      const address = [data.streetAddress, data.streetAddress2, data.city, data.state, data.zipCode]
+        .filter(Boolean)
+        .join(', ')
+      
+      console.log('Searching for existing customer with:', { firstName, lastName, dateOfBirth })
+      
+      // Search for existing customer by name and date of birth
+      const searchQuery = `${firstName} ${lastName}`.trim()
+      const existingCustomers = await floraAPI.getCustomers({
+        search: searchQuery,
+        per_page: 50
+      })
+      
+      // Try to find exact match by name and date of birth
+      let matchedCustomer = null
+      if (dateOfBirth) {
+        matchedCustomer = existingCustomers.find(customer => {
+          const customerName = `${customer.first_name} ${customer.last_name}`.trim().toLowerCase()
+          const scannedName = searchQuery.toLowerCase()
+          // For now, match by name - could enhance with DOB matching if stored in customer meta
+          return customerName === scannedName
+        })
+      }
+      
+      if (matchedCustomer) {
+        // Customer exists, assign them to the cart
+        console.log('Found existing customer:', matchedCustomer)
+        const customerPhone = matchedCustomer.billing?.phone || ''
+        const totalSpent = parseFloat(matchedCustomer.total_spent || '0')
+        const ordersCount = matchedCustomer.orders_count || 0
+        const loyaltyPoints = matchedCustomer.loyalty_points || 0
+        
+                 onAssignCustomer({
+           id: matchedCustomer.id.toString(),
+           firstName: matchedCustomer.first_name || firstName,
+           lastName: matchedCustomer.last_name || lastName,
+           email: matchedCustomer.email,
+           phone: customerPhone,
+           dateOfBirth: dateOfBirth,
+           address: `${matchedCustomer.billing?.address_1 || ''} ${matchedCustomer.billing?.city || ''}`.trim() || address,
+           totalOrders: ordersCount,
+           totalSpent: totalSpent,
+           loyaltyPoints: loyaltyPoints,
+           status: matchedCustomer.is_paying_customer ? 'active' : 'inactive',
+           avatar: matchedCustomer.avatar_url
+         })
+        
+        toast.success(`Customer ${firstName} ${lastName} assigned to cart`)
+      } else {
+        // Customer doesn't exist, create new one
+        console.log('Creating new customer with scanned data')
+        
+        const newCustomerData = {
+          first_name: firstName,
+          last_name: lastName,
+          email: email || `${firstName.toLowerCase()}${lastName.toLowerCase()}@example.com`, // Placeholder email
+          billing: {
+            first_name: firstName,
+            last_name: lastName,
+            address_1: data.streetAddress || '',
+            address_2: data.streetAddress2 || '',
+            city: data.city || '',
+            state: data.state || '',
+            postcode: data.zipCode || '',
+            phone: phone
+          },
+          shipping: {
+            first_name: firstName,
+            last_name: lastName,
+            address_1: data.streetAddress || '',
+            address_2: data.streetAddress2 || '',
+            city: data.city || '',
+            state: data.state || '',
+            postcode: data.zipCode || ''
+          }
+        }
+        
+                 // Create customer via WooCommerce API
+         const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/wp-json/wc/v3/customers`, {
+           method: 'POST',
+           headers: {
+             'Authorization': 'Basic ' + btoa(`${process.env.NEXT_PUBLIC_WC_CONSUMER_KEY}:${process.env.NEXT_PUBLIC_WC_CONSUMER_SECRET}`),
+             'Content-Type': 'application/json',
+           },
+           body: JSON.stringify(newCustomerData)
+         })
+        
+        if (response.ok) {
+          const createdCustomer = await response.json()
+          console.log('Created new customer:', createdCustomer)
+          
+                     // Assign the new customer to cart
+           onAssignCustomer({
+             id: createdCustomer.id.toString(),
+             firstName: firstName,
+             lastName: lastName,
+             email: createdCustomer.email,
+             phone: phone,
+             dateOfBirth: dateOfBirth,
+             address: address,
+             totalOrders: 0,
+             totalSpent: 0,
+             loyaltyPoints: 0,
+             status: 'active',
+             avatar: createdCustomer.avatar_url
+           })
+          
+          toast.success(`New customer ${firstName} ${lastName} created and assigned to cart`)
+        } else {
+          const errorData = await response.json()
+          console.error('Failed to create customer:', errorData)
+          toast.error(`Failed to create customer: ${errorData.message || 'Unknown error'}`)
+        }
+      }
+    } catch (error) {
+      console.error('Error processing scanned ID:', error)
+      toast.error('Failed to process scanned ID data')
+    }
   }
 
   if (items.length === 0) {
@@ -290,7 +415,58 @@ export function Cart({
       <div className="w-80 bg-background-primary border-l border-border flex flex-col">
         <div className="flex-1 relative">
           <MatrixRain width={320} height={400} className="absolute inset-0 w-full h-full" />
+          
+          {/* Floating ID Scanner Button */}
+          {!assignedCustomer && (
+            <div className="absolute bottom-4 right-4">
+              <button 
+                onClick={() => setIsScannerOpen(true)}
+                className="bg-primary hover:bg-primary/80 text-white p-3 rounded-full shadow-lg transition-colors flex items-center gap-2"
+              >
+                <User className="w-5 h-5" />
+                <span className="text-sm font-medium">Scan ID</span>
+              </button>
+            </div>
+          )}
         </div>
+        
+        {/* Customer Assignment Section - Only show when customer is assigned */}
+        {assignedCustomer && (
+          <div className="px-2 py-1">
+            <div className="flex items-center justify-between p-3 bg-background-secondary rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                  <span className="text-xs font-medium text-primary">
+                    {assignedCustomer.firstName.charAt(0)}{assignedCustomer.lastName.charAt(0)}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-text-primary">
+                    {assignedCustomer.firstName} {assignedCustomer.lastName}
+                  </p>
+                  <p className="text-xs text-text-secondary">{assignedCustomer.email}</p>
+                  <p className="text-xs font-medium text-green-400">
+                    {assignedCustomer.loyaltyPoints > 0 ? `${assignedCustomer.loyaltyPoints.toLocaleString()} chips` : '0 chips'}
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={onUnassignCustomer}
+                className="text-error hover:text-error/80 transition-colors p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {isScannerOpen && (
+          <IDScanner 
+            isOpen={isScannerOpen}
+            onClose={() => setIsScannerOpen(false)}
+            onScanComplete={handleScanResult}
+          />
+        )}
       </div>
     )
   }

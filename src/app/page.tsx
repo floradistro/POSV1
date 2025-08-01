@@ -165,7 +165,7 @@ export default function FloraDistrosPOS() {
         <div className={`fixed inset-y-0 left-0 z-50 w-80 bg-background-secondary border-r border-white/[0.04] transform transition-transform duration-300 ease-in-out ${
           isMenuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}>
-          <div className="p-4">
+          <div className="px-2 py-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-text-primary">Menu</h2>
               <button
@@ -320,7 +320,7 @@ export default function FloraDistrosPOS() {
           {/* Customer View Panel */}
           {isCustomerViewOpen && (
             <div className="w-80 bg-background-secondary border-r border-white/[0.04] flex-shrink-0">
-                              <div className="p-4 border-b border-white/[0.04]">
+                              <div className="px-2 py-6 border-b border-white/[0.04]">
                 <h3 className="text-lg font-semibold text-text-primary mb-3">Customer Directory</h3>
                 <div className="relative">
                   <input

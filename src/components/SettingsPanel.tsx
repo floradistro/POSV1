@@ -37,7 +37,7 @@ export default function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         {/* Header */}
-        <div className="py-1 flex items-center justify-end px-6 border-b border-white/[0.08]">
+        <div className="px-2 py-6 flex items-center justify-end border-b border-white/[0.08]">
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-background-tertiary transition-colors duration-200"
@@ -47,7 +47,7 @@ export default function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="px-2 py-6 space-y-6">
           {/* User Info */}
           {user && (
             <div>
