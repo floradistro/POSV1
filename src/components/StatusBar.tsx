@@ -66,9 +66,8 @@ export function StatusBar({ store, user, cartItemCount = 0, productCount }: Stat
       <div className="flex items-center space-x-2">
         {/* User Info */}
         {user && (
-          <div className="flex items-center space-x-0.5">
-            <span>{user.name}</span>
-            <span className="text-text-tertiary">({user.role})</span>
+          <div className="flex items-center">
+            <span>Hello, {user.name.split(' ')[0]}</span>
           </div>
         )}
       </div>

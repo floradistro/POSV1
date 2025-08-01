@@ -3,6 +3,7 @@
 import { Trash2, Plus, Minus, User, X, CreditCard, DollarSign, Loader2, ArrowLeft } from 'lucide-react'
 import Image from 'next/image'
 import { IDScanner } from './IDScanner'
+import { MatrixRain } from './MatrixRain'
 import { FloraProduct, floraAPI, CreateOrderData } from '../lib/woocommerce'
 import { useLocation } from '@/contexts/LocationContext'
 import { useState } from 'react'
@@ -286,65 +287,10 @@ export function Cart({
 
   if (items.length === 0) {
     return (
-      <div className="w-80 bg-background-primary border-l border-border p-6 flex flex-col">
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-16 h-16 bg-background-secondary rounded-full flex items-center justify-center mx-auto mb-4">
-              <User className="w-8 h-8 text-text-tertiary" />
-            </div>
-            <p className="text-text-secondary">Your cart is empty</p>
-          </div>
+      <div className="w-80 bg-background-primary border-l border-border flex flex-col">
+        <div className="flex-1 relative">
+          <MatrixRain width={320} height={400} className="absolute inset-0 w-full h-full" />
         </div>
-        
-        {/* Customer Assignment Section */}
-        <div className="border-t border-border pt-4">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-text-primary">Customer</span>
-            {!assignedCustomer && (
-              <button 
-                onClick={() => setIsScannerOpen(true)}
-                className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
-              >
-                <User className="w-4 h-4" />
-                <span className="text-sm">Scan ID</span>
-              </button>
-            )}
-          </div>
-          
-          {assignedCustomer ? (
-            <div className="flex items-center justify-between p-3 bg-background-secondary rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                  <span className="text-xs font-medium text-primary">
-                    {assignedCustomer.firstName.charAt(0)}{assignedCustomer.lastName.charAt(0)}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-text-primary">
-                    {assignedCustomer.firstName} {assignedCustomer.lastName}
-                  </p>
-                  <p className="text-xs text-text-secondary">{assignedCustomer.email}</p>
-                </div>
-              </div>
-              <button 
-                onClick={onUnassignCustomer}
-                className="text-error hover:text-error/80 transition-colors p-1"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          ) : (
-            <p className="text-sm text-text-secondary">No customer assigned</p>
-          )}
-        </div>
-
-        {isScannerOpen && (
-          <IDScanner 
-            isOpen={isScannerOpen}
-            onClose={() => setIsScannerOpen(false)}
-            onScanComplete={handleScanResult}
-          />
-        )}
       </div>
     )
   }
