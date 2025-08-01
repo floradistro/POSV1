@@ -2,6 +2,7 @@
 
 import { useAuth } from '../contexts/AuthContext'
 import { LoginForm } from '../components/LoginForm'
+import PWAInstaller from '../components/PWAInstaller'
 import { Loader2 } from 'lucide-react'
 
 interface AppWrapperProps {
@@ -23,8 +24,18 @@ export function AppWrapper({ children }: AppWrapperProps) {
   }
 
   if (!isAuthenticated) {
-    return <LoginForm />
+    return (
+      <>
+        <LoginForm />
+        <PWAInstaller />
+      </>
+    )
   }
 
-  return <>{children}</>
+  return (
+    <>
+      {children}
+      <PWAInstaller />
+    </>
+  )
 } 

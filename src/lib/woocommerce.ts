@@ -1,6 +1,6 @@
 // Flora POS API - Optimized for Addify Multi-Location Inventory & POS Plugins
 // Base configuration
-const API_BASE = process.env.NEXT_PUBLIC_WORDPRESS_URL || 'http://api.floradistro.com'
+const API_BASE = process.env.NEXT_PUBLIC_WORDPRESS_URL || 'https://api.floradistro.com'
 const WC_CONSUMER_KEY = process.env.WC_CONSUMER_KEY || 'ck_bb8e5fe3d405e6ed6b8c079c93002d7d8b23a7d5'
 const WC_CONSUMER_SECRET = process.env.WC_CONSUMER_SECRET || 'cs_38194e74c7ddc5d72b6c32c70485728e7e529678'
 

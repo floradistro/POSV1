@@ -1,12 +1,12 @@
 {
-  "name": "Flora POS System",
-  "short_name": "Flora POS",
-  "description": "Flora Distribution Point of Sale System - Real Cannabis Anywhere",
+  "name": "POS System",
+  "short_name": "POS",
+  "description": "Point of Sale System - Real Cannabis Anywhere",
   "start_url": "/",
   "display": "fullscreen",
-  "orientation": "landscape-primary",
+  "orientation": "any",
   "theme_color": "#1a1a1a",
-  "background_color": "#000000",
+  "background_color": "#1a1a1a",
   "icons": [
     {
       "src": "/logo.png",

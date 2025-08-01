@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Loader2, Store, Monitor, Mail, Lock, Eye, EyeOff, Building2, LogIn } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { AuthDebugger } from '../lib/debug-auth'
 import toast from 'react-hot-toast'
 
 interface Store {
@@ -107,6 +108,11 @@ export function LoginForm() {
 
     try {
       console.log('🔐 Attempting login with Flora POS...')
+      
+      // Debug logging
+      AuthDebugger.logEnvironment()
+      await AuthDebugger.testConnection()
+      
       await login({
         email: formData.email,
         password: formData.password,
@@ -118,6 +124,11 @@ export function LoginForm() {
       console.log('✅ Login completed successfully')
     } catch (error) {
       console.error('❌ Login failed:', error)
+      
+      // Additional debug info on failure
+      console.log('🔍 Running additional auth debug...')
+      await AuthDebugger.testAuth(formData.email, formData.password, formData.storeId, formData.terminalId)
+      
       toast.error(error instanceof Error ? error.message : 'Login failed. Please try again.')
     }
   }
