@@ -21,7 +21,8 @@ export async function GET(
       headers: {
         'Authorization': 'Basic ' + btoa(`${WC_CONSUMER_KEY}:${WC_CONSUMER_SECRET}`),
         'Content-Type': 'application/json',
-      }
+      },
+      cache: 'no-store' // Prevent caching
     })
 
     console.log(`📡 Response status: ${response.status}`)
@@ -106,7 +107,14 @@ export async function GET(
     const data = await response.json()
     console.log(`📊 Fetched tax rates for store ${storeId}:`, data)
     
-    return NextResponse.json(data)
+    // Return with cache headers to prevent stale data
+    return NextResponse.json(data, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    })
   } catch (error) {
     console.error('Error fetching tax rates:', error)
     return NextResponse.json(

@@ -2,10 +2,12 @@ import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../contexts/AuthContext'
 
 export interface TaxRate {
+  id: number
   name: string
   rate: number
-  type: 'percentage' | 'fixed'
   compound: 'yes' | 'no'
+  shipping: 'yes' | 'no'
+  class: string
 }
 
 export interface LocationTaxRates {
@@ -52,12 +54,8 @@ export function calculateTaxAmount(
 
   // Calculate non-compound taxes first
   nonCompoundTaxes.forEach(rate => {
-    let amount = 0
-    if (rate.type === 'percentage') {
-      amount = (subtotal * rate.rate) / 100
-    } else {
-      amount = rate.rate
-    }
+    // WooCommerce taxes are always percentage-based
+    const amount = (subtotal * rate.rate) / 100
     taxAmount += amount
     taxBreakdown.push({ name: rate.name, amount })
   })
@@ -65,12 +63,8 @@ export function calculateTaxAmount(
   // Calculate compound taxes (on subtotal + non-compound taxes)
   const baseForCompound = subtotal + taxAmount
   compoundTaxes.forEach(rate => {
-    let amount = 0
-    if (rate.type === 'percentage') {
-      amount = (baseForCompound * rate.rate) / 100
-    } else {
-      amount = rate.rate
-    }
+    // WooCommerce taxes are always percentage-based
+    const amount = (baseForCompound * rate.rate) / 100
     taxAmount += amount
     taxBreakdown.push({ name: rate.name, amount })
   })

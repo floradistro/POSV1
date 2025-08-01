@@ -8,7 +8,7 @@ import { useLocation } from '@/contexts/LocationContext'
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { useTaxRates, calculateTaxAmount } from '@/hooks/useTaxRates'
+import { useTaxRates, calculateTaxAmount, type TaxRate } from '@/hooks/useTaxRates'
 
 // Helper function to format variation display
 function formatVariationDisplay(variation: string): string {
@@ -193,6 +193,10 @@ export function Cart({
         {
           key: '_location_tax_rates',
           value: JSON.stringify(taxRatesData?.tax_rates || [])
+        },
+        {
+          key: '_wc_tax_rate_ids',
+          value: JSON.stringify(taxRatesData?.tax_rates?.map((r: TaxRate) => r.id) || [])
         }
       ],
       billing: {
@@ -254,16 +258,6 @@ export function Cart({
         
         return lineItem
       })
-    }
-
-    // Add taxes as fee lines so they show up in WooCommerce admin
-    if (taxBreakdown && taxBreakdown.length > 0) {
-      orderData.fee_lines = taxBreakdown.map(taxItem => ({
-        name: taxItem.name,
-        total: taxItem.amount.toFixed(2),
-        tax_status: 'none', // Don't tax the tax
-        tax_class: ''
-      }))
     }
 
     // Add customer ID to order if customer is assigned
