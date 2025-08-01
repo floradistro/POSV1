@@ -1,37 +1,64 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { floraAPI, FloraProduct } from '@/lib/woocommerce'
+import { floraAPI, FloraProduct } from '../lib/woocommerce'
 import { ProductCard } from './ProductCard'
 import { Loader2 } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
 
 interface ProductGridProps {
-  category: string | null
+  category: number | null
   searchQuery: string
   onAddToCart: (product: FloraProduct) => void
 }
 
 export function ProductGrid({ category, searchQuery, onAddToCart }: ProductGridProps) {
-  const { data: products = [], isLoading } = useQuery({
-    queryKey: ['products', category, searchQuery],
-    queryFn: () =>
-      floraAPI.getProducts({
+  const { store } = useAuth()
+
+  const { data: products = [], isLoading, error } = useQuery({
+    queryKey: ['products', category, searchQuery, store?.id],
+    queryFn: async (): Promise<FloraProduct[]> => {
+      return floraAPI.getProducts({
         category: category || undefined,
         search: searchQuery || undefined,
-      }),
+        storeId: store?.id,
+        per_page: 50
+      })
+    },
+    enabled: !!store?.id, // Only fetch when we have a store
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes (renamed from cacheTime)
   })
+
+  if (!store?.id) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-text-secondary">Please select a store to view products</p>
+      </div>
+    )
+  }
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <span className="ml-2 text-text-secondary">Loading products for {store.name}...</span>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-red-400">Error loading products. Please try again.</p>
       </div>
     )
   }
 
   const filteredProducts = products.filter((product: FloraProduct) => {
     if (searchQuery) {
-      return product.name.toLowerCase().includes(searchQuery.toLowerCase())
+      return product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+             product.description.toLowerCase().includes(searchQuery.toLowerCase())
     }
     return true
   })
@@ -39,20 +66,34 @@ export function ProductGrid({ category, searchQuery, onAddToCart }: ProductGridP
   if (filteredProducts.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-text-secondary">No products found</p>
+        <p className="text-text-secondary">
+          {store.name ? `No products found at ${store.name}` : 'No products found'}
+        </p>
+        {store.name && (
+          <p className="text-text-tertiary text-sm mt-1">
+            Products shown are filtered by location inventory
+          </p>
+        )}
       </div>
     )
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-      {filteredProducts.map((product: FloraProduct) => (
-        <ProductCard
-          key={product.id}
-          product={product}
-          onAddToCart={onAddToCart}
-        />
-      ))}
+    <div className="space-y-4">
+      {store.name && (
+        <div className="text-sm text-text-secondary bg-background-secondary p-3 rounded-lg sticky top-0 z-10">
+          Showing {filteredProducts.length} products available at <strong>{store.name}</strong>
+        </div>
+      )}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pb-8">
+        {filteredProducts.map((product: FloraProduct) => (
+          <ProductCard
+            key={product.id}
+            product={product}
+            onAddToCart={onAddToCart}
+          />
+        ))}
+      </div>
     </div>
   )
 } 

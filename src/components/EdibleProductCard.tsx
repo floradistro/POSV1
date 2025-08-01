@@ -1,6 +1,38 @@
-import { FloraProduct, getACFValue } from '@/lib/woocommerce'
 import { Plus } from 'lucide-react'
 import Image from 'next/image'
+
+// Temporary interface until new API is implemented
+interface FloraProduct {
+  id: number
+  name: string
+  slug: string
+  description: string
+  short_description: string
+  price: string
+  regular_price: string
+  sale_price: string
+  on_sale: boolean
+  stock_status: 'instock' | 'outofstock' | 'onbackorder'
+  stock_quantity: number | null
+  categories: Array<{ id: number; name: string; slug: string }>
+  images: Array<{ id: number; src: string; name: string; alt: string }>
+  attributes: Array<{ id: number; name: string; options: string[] }>
+  meta_data: Array<{ key: string; value: any }>
+  variations?: number[]
+  has_options?: boolean
+  type: string
+  variationsData?: any[]
+}
+
+// Helper functions
+function getACFValue(product: FloraProduct, key: string): string | undefined {
+  const metaData = product.meta_data?.find(meta => meta.key === key)
+  return metaData?.value?.toString()
+}
+
+function getStockStatus(product: FloraProduct): 'instock' | 'outofstock' | 'onbackorder' {
+  return product.stock_status || 'instock'
+}
 
 interface EdibleProductCardProps {
   product: FloraProduct
@@ -11,10 +43,27 @@ export function EdibleProductCard({ product, onAddToCart }: EdibleProductCardPro
   const price = parseFloat(product.sale_price || product.price)
   const regularPrice = parseFloat(product.regular_price)
   const hasDiscount = product.on_sale && price < regularPrice
+  const stockStatus = getStockStatus(product)
 
   // Get ACF fields for edible products
   const strengthMg = getACFValue(product, 'strength_mg') || getACFValue(product, 'thca_%') || '10'
   const effects = getACFValue(product, 'effects') || 'Relaxing'
+
+  const getStockColor = () => {
+    switch (stockStatus) {
+      case 'outofstock': return 'text-vscode-accent'
+      case 'onbackorder': return 'text-orange-400'
+      default: return 'text-green-400'
+    }
+  }
+
+  const getStockText = () => {
+    if (stockStatus === 'outofstock') return 'Out of Stock'
+    if (product.stock_quantity !== null) {
+      return `${product.stock_quantity} in stock`
+    }
+    return 'In Stock'
+  }
 
   return (
     <div className="group relative transition-all duration-300 opacity-100 translate-y-0 border-r border-b border-vscode-border hover:bg-vscode-bgSecondary/30">
@@ -87,13 +136,18 @@ export function EdibleProductCard({ product, onAddToCart }: EdibleProductCardPro
               </div>
             </div>
 
-            {/* Price and Add Button - VSCode style */}
+            {/* Price, Stock and Add Button - VSCode style */}
             <div className="flex items-center justify-between">
-              <div className="text-vscode-text font-light text-base">
-                <span className="text-vscode-accent">$</span>{price.toFixed(2)}
-                {hasDiscount && (
-                  <span className="text-vscode-textMuted text-sm line-through ml-1">${regularPrice.toFixed(2)}</span>
-                )}
+              <div className="flex flex-col">
+                <div className="text-vscode-text font-light text-base">
+                  <span className="text-vscode-accent">$</span>{price.toFixed(2)}
+                  {hasDiscount && (
+                    <span className="text-vscode-textMuted text-sm line-through ml-1">${regularPrice.toFixed(2)}</span>
+                  )}
+                </div>
+                <span className={`text-xs ${getStockColor()}`}>
+                  {getStockText()}
+                </span>
               </div>
               
               <button
@@ -101,7 +155,12 @@ export function EdibleProductCard({ product, onAddToCart }: EdibleProductCardPro
                   e.stopPropagation()
                   onAddToCart(product)
                 }}
-                className="bg-vscode-accent/20 hover:bg-vscode-accent border border-vscode-accent/30 hover:border-vscode-accent text-vscode-accent hover:text-white p-1.5 rounded transition-all duration-200 hover:scale-110 shadow-vscode"
+                disabled={stockStatus === 'outofstock'}
+                className={`p-1.5 rounded transition-all duration-200 ${
+                  stockStatus === 'outofstock'
+                    ? 'bg-vscode-bgTertiary text-vscode-textMuted cursor-not-allowed'
+                    : 'bg-vscode-accent/20 hover:bg-vscode-accent border border-vscode-accent/30 hover:border-vscode-accent text-vscode-accent hover:text-white hover:scale-110 shadow-vscode'
+                }`}
               >
                 <Plus className="w-3 h-3" />
               </button>

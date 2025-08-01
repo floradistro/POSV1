@@ -1,8 +1,9 @@
 import './globals.css'
+import { Providers } from './providers'
 
 export const metadata = {
-  title: 'Flora Distro POS',
-  description: 'Point of Sale system for Flora Distro - Real Cannabis Anywhere',
+  title: 'POS System',
+  description: 'Point of Sale system - Real Cannabis Anywhere',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -38,7 +39,9 @@ export default function RootLayout({
       </head>
       <body className="font-sf-pro antialiased">
         <div className="min-h-screen bg-background text-text-primary">
-          {children}
+          <Providers>
+            {children}
+          </Providers>
         </div>
       </body>
     </html>

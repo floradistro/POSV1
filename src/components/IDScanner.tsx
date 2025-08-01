@@ -4,11 +4,13 @@ import { useEffect, useRef, useState } from 'react'
 import { BrowserMultiFormatReader, NotFoundException, BarcodeFormat } from '@zxing/library'
 
 interface IDScannerProps {
-  onScan: (data: any) => void
+  isOpen: boolean
   onClose: () => void
+  onScanComplete: (data: any) => void
 }
 
-export function IDScanner({ onScan, onClose }: IDScannerProps) {
+export function IDScanner({ isOpen, onClose, onScanComplete }: IDScannerProps) {
+  if (!isOpen) return null
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isScanning, setIsScanning] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -56,7 +58,7 @@ export function IDScanner({ onScan, onClose }: IDScannerProps) {
           console.log('Parsed data:', parsedData)
           
           if (parsedData && Object.keys(parsedData).length > 0) {
-            onScan(parsedData)
+            onScanComplete(parsedData)
             stopScanning()
           } else {
             console.log('No valid license data found, continuing scan...')
@@ -139,7 +141,7 @@ export function IDScanner({ onScan, onClose }: IDScannerProps) {
     if (manualData.trim()) {
       const parsedData = parseDriverLicenseData(manualData.trim())
       if (parsedData && Object.keys(parsedData).length > 0) {
-        onScan(parsedData)
+        onScanComplete(parsedData)
       } else {
         setError('Could not parse the manual data. Please check the format.')
       }

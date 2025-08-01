@@ -1,8 +1,45 @@
-import { FloraProduct, determineProductCategory } from '@/lib/woocommerce'
 import { MoonwaterProductCard } from './MoonwaterProductCard'
 import { EdibleProductCard } from './EdibleProductCard'
 import FloraDenseView from './FloraDenseView'
 import { useState } from 'react'
+
+// Temporary interface until new API is implemented
+interface FloraProduct {
+  id: number
+  name: string
+  slug: string
+  description: string
+  short_description: string
+  price: string
+  regular_price: string
+  sale_price: string
+  on_sale: boolean
+  stock_status: 'instock' | 'outofstock' | 'onbackorder'
+  stock_quantity: number | null
+  categories: Array<{ id: number; name: string; slug: string }>
+  images: Array<{ id: number; src: string; name: string; alt: string }>
+  attributes: Array<{ id: number; name: string; options: string[] }>
+  meta_data: Array<{ key: string; value: any }>
+  variations?: number[]
+  has_options?: boolean
+  type: string
+  variationsData?: any[]
+}
+
+// Temporary category determination function
+const determineProductCategory = (product: FloraProduct): string => {
+  const categorySlug = product.categories?.[0]?.slug || ''
+  if (categorySlug) return categorySlug
+  
+  const categoryName = product.categories?.[0]?.name.toLowerCase() || ''
+  if (categoryName.includes('flower')) return 'flower'
+  if (categoryName.includes('vape')) return 'vape'
+  if (categoryName.includes('edible')) return 'edibles'
+  if (categoryName.includes('concentrate')) return 'concentrate'
+  if (categoryName.includes('moonwater')) return 'moonwater'
+  
+  return 'flower' // Default
+}
 
 interface SmartProductGridProps {
   products: FloraProduct[]
@@ -101,7 +138,7 @@ export function SmartProductGrid({
             selectedOptions={selectedOptions}
             onAddToCart={onAddToCart}
             onProductClick={onProductClick}
-            onOptionSelect={onOptionSelect}
+            onOptionSelect={onOptionSelect || (() => {})}
           />
         )}
       </div>

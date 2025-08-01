@@ -1,6 +1,7 @@
 'use client'
 
-import { X } from 'lucide-react'
+import { X, LogOut, User, Building2, Monitor } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface SettingsPanelProps {
   isOpen: boolean
@@ -8,6 +9,17 @@ interface SettingsPanelProps {
 }
 
 export default function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
+  const { user, store, terminal, logout } = useAuth()
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+      onClose()
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
+  }
+
   return (
     <>
       {/* Overlay */}
@@ -25,7 +37,7 @@ export default function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         {/* Header */}
-<div className="py-1 flex items-center justify-end px-6 border-b border-white/[0.08]">
+        <div className="py-1 flex items-center justify-end px-6 border-b border-white/[0.08]">
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-background-tertiary transition-colors duration-200"
@@ -36,6 +48,54 @@ export default function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
 
         {/* Content */}
         <div className="p-6 space-y-6">
+          {/* User Info */}
+          {user && (
+            <div>
+              <h3 className="text-sm font-medium text-white mb-3">Current Session</h3>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 bg-background-tertiary rounded-lg border border-white/10">
+                  <div className="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center">
+                    <User className="w-4 h-4 text-secondary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-white truncate">
+                      {user.firstName} {user.lastName}
+                    </div>
+                    <div className="text-xs text-white/60 truncate">{user.email}</div>
+                  </div>
+                </div>
+                
+                {store && (
+                  <div className="flex items-center gap-3 p-3 bg-background-tertiary rounded-lg border border-white/10">
+                    <div className="w-8 h-8 rounded-full bg-cannabis-sage/20 flex items-center justify-center">
+                      <Building2 className="w-4 h-4 text-cannabis-sage" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-white truncate">
+                        Flora Distro - {store.name}
+                      </div>
+                      <div className="text-xs text-white/60 truncate">{store.address}</div>
+                    </div>
+                  </div>
+                )}
+
+                {terminal && (
+                  <div className="flex items-center gap-3 p-3 bg-background-tertiary rounded-lg border border-white/10">
+                    <div className="w-8 h-8 rounded-full bg-warning/20 flex items-center justify-center">
+                      <Monitor className="w-4 h-4 text-warning" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-white truncate">
+                        {terminal.name}
+                      </div>
+                      <div className="text-xs text-white/60">Terminal ID: {terminal.id}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Store Settings */}
           <div>
             <h3 className="text-sm font-medium text-white mb-3">Store Settings</h3>
@@ -110,6 +170,19 @@ export default function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
               <div>Last Sync: 2 minutes ago</div>
             </div>
           </div>
+
+          {/* Logout Button */}
+          {user && (
+            <div className="pt-4 border-t border-white/[0.08]">
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-error/10 hover:bg-error/20 border border-error/30 hover:border-error/50 rounded-lg text-error hover:text-error-light transition-all duration-200"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="text-sm font-medium">Sign Out</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </>

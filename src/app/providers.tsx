@@ -2,49 +2,64 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import { AuthProvider } from '@/contexts/AuthContext'
+import { ReactNode, useEffect } from 'react'
 import { Toaster } from 'react-hot-toast'
-import { useState } from 'react'
 
-export function Providers({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 60 * 1000,
-            refetchInterval: 5 * 60 * 1000,
-          },
-        },
-      })
-  )
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes (garbage collection time)
+      refetchOnWindowFocus: false,
+      retry: 2,
+    },
+  },
+})
+
+// Initialize default store if none exists
+function initializeDefaultStore() {
+  if (typeof window !== 'undefined') {
+    const storedStore = localStorage.getItem('flora_pos_store')
+    if (!storedStore) {
+      // Set Charlotte Monroe as default store
+      const defaultStore = {
+        id: 'mli_30',
+        name: 'Charlotte Monroe',
+        address: '3033 Monroe Rd, Charlotte, NC 28205',
+        location: {
+          latitude: 35.2124,
+          longitude: -80.7974
+        }
+      }
+      localStorage.setItem('flora_pos_store', JSON.stringify(defaultStore))
+      console.log('🏪 Set default store to Charlotte Monroe')
+    }
+  }
+}
+
+export function Providers({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    initializeDefaultStore()
+  }, [])
 
   return (
     <QueryClientProvider client={queryClient}>
-      {children}
+      <AuthProvider>
+        {children}
+        <Toaster 
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              background: '#1a1a1a',
+              color: '#fff',
+              borderRadius: '8px',
+            },
+          }}
+        />
+      </AuthProvider>
       <ReactQueryDevtools initialIsOpen={false} />
-      <Toaster
-        position="top-center"
-        toastOptions={{
-          duration: 3000,
-          style: {
-            background: '#1E293B',
-            color: '#F8FAFC',
-            border: '1px solid #334155',
-          },
-          success: {
-            iconTheme: {
-              primary: '#10B981',
-              secondary: '#F8FAFC',
-            },
-          },
-          error: {
-            iconTheme: {
-              primary: '#EF4444',
-              secondary: '#F8FAFC',
-            },
-          },
-        }}
-      />
     </QueryClientProvider>
   )
 } 

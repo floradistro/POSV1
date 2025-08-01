@@ -1,7 +1,33 @@
 import React from 'react'
-import { FloraProduct } from '../lib/woocommerce'
 
-// Helper function to get ACF values
+// Temporary interface until new API is implemented
+interface FloraProduct {
+  id: number
+  name: string
+  slug: string
+  description: string
+  short_description: string
+  price: string
+  regular_price: string
+  sale_price: string
+  on_sale: boolean
+  stock_status: 'instock' | 'outofstock' | 'onbackorder'
+  stock_quantity: number | null
+  categories: Array<{ id: number; name: string; slug: string }>
+  images: Array<{ id: number; src: string; name: string; alt: string }>
+  attributes: Array<{ id: number; name: string; options: string[] }>
+  meta_data: Array<{ key: string; value: any }>
+  variations?: number[]
+  has_options?: boolean
+  type: string
+  variationsData?: any[]
+}
+
+// Helper functions
+function getStockStatus(product: FloraProduct): 'instock' | 'outofstock' | 'onbackorder' {
+  return product.stock_status || 'instock'
+}
+
 function getACFValue(product: FloraProduct, key: string): string | undefined {
   const metaItem = product.meta_data?.find(item => item.key === key)
   return metaItem?.value
@@ -51,10 +77,27 @@ export function MoonwaterProductCard({
   const price = getCurrentPrice();
   const regularPrice = parseFloat(product.regular_price)
   const hasDiscount = product.on_sale && price < regularPrice
+  const stockStatus = getStockStatus(product)
 
   // Get ACF fields for moonwater products
   const strengthMg = getACFValue(product, 'strength_mg') || '10'
   const effects = getACFValue(product, 'effects') || 'Refreshing Hydrating'
+
+  const getStockColor = () => {
+    switch (stockStatus) {
+      case 'outofstock': return 'text-vscode-accent'
+      case 'onbackorder': return 'text-orange-400'
+      default: return 'text-green-400'
+    }
+  }
+
+  const getStockText = () => {
+    if (stockStatus === 'outofstock') return 'Out of Stock'
+    if (product.stock_quantity !== null) {
+      return `${product.stock_quantity} in stock`
+    }
+    return 'In Stock'
+  }
 
   // Check if user has made selections (both flavor and pack size for products with flavors, or just pack size for Riptide)
   const hasRequiredSelections = () => {
@@ -83,9 +126,9 @@ export function MoonwaterProductCard({
   })
 
   // Get available flavors and pack sizes from variations
-  const flavors = hasVariations ? Array.from(new Set(product.variationsData!.map(v => {
+  const flavors = hasVariations ? Array.from(new Set(product.variationsData!.map((v: any) => {
     // Check multiple possible attribute names for flavor
-    const flavorAttr = v.attributes.find(attr => 
+    const flavorAttr = v.attributes.find((attr: any) => 
       attr.name === 'Flavor' || 
       attr.name === 'flavor' || 
       attr.name === 'pa_flavor' ||
@@ -96,9 +139,9 @@ export function MoonwaterProductCard({
     return flavor
   }))) : []
 
-  const packSizes = hasVariations ? Array.from(new Set(product.variationsData!.map(v => {
+  const packSizes = hasVariations ? Array.from(new Set(product.variationsData!.map((v: any) => {
     // Check multiple possible attribute names for pack size
-    const packSizeAttr = v.attributes.find(attr => 
+    const packSizeAttr = v.attributes.find((attr: any) => 
       attr.name === 'Pack Size' || 
       attr.name === 'pack-size' || 
       attr.name === 'pa_pack-size' ||
@@ -207,6 +250,9 @@ export function MoonwaterProductCard({
                         {selectedOption.includes('pack-') && ` • ${selectedOption.split('pack-')[1]?.split('|')[0]}`}
                       </div>
                     )}
+                    <div className={`text-xs mt-1 ${getStockColor()}`}>
+                      {getStockText()}
+                    </div>
                   </>
                 ) : (
                   <div className="text-vscode-textMuted text-sm">
@@ -214,6 +260,13 @@ export function MoonwaterProductCard({
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Stock Status - VSCode style */}
+            <div className="flex items-center gap-1 mt-2">
+              <span className={`text-vscode-textSecondary text-xs font-light ${getStockColor()}`}>
+                {getStockText()}
+              </span>
             </div>
           </div>
         </div>
@@ -324,16 +377,18 @@ export function MoonwaterProductCard({
         <div className="flex gap-2 mt-2">
           <button
             onClick={handleAddToCart}
-            disabled={!showPrice}
+            disabled={!showPrice || stockStatus === 'outofstock'}
             className={`w-full px-4 py-2 border text-sm font-light transition-all duration-300 min-h-[40px] rounded ${
-              !showPrice
+              !showPrice || stockStatus === 'outofstock'
                 ? 'bg-vscode-panel border-vscode-border text-vscode-textMuted cursor-not-allowed'
                 : 'bg-vscode-accent hover:bg-vscode-accentHover border-vscode-accent text-white hover:scale-[1.02] active:scale-95 shadow-vscode hover:shadow-vscode-lg'
             }`}
           >
-            {!showPrice 
-              ? 'Select Options First' 
-              : 'Add to Cart'}
+            {stockStatus === 'outofstock'
+              ? 'Out of Stock'
+              : !showPrice 
+                ? 'Select Options First' 
+                : 'Add to Cart'}
           </button>
         </div>
       </div>

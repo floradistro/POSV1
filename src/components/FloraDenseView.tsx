@@ -1,14 +1,69 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { FloraProduct, getProductPrice, getProductImage, getStockStatus, getProductSizes, PRODUCT_PRICING } from '../lib/woocommerce'
+
+// Temporary interface until new API is implemented
+interface FloraProduct {
+  id: number
+  name: string
+  slug: string
+  description: string
+  short_description: string
+  price: string
+  regular_price: string
+  sale_price: string
+  on_sale: boolean
+  stock_status: 'instock' | 'outofstock' | 'onbackorder'
+  stock_quantity: number | null
+  categories: Array<{ id: number; name: string; slug: string }>
+  images: Array<{ id: number; src: string; name: string; alt: string }>
+  attributes: Array<{ id: number; name: string; options: string[] }>
+  meta_data: Array<{ key: string; value: any }>
+  variations?: number[]
+  has_options?: boolean
+  type: string
+  variationsData?: any[]
+}
+
+// Helper functions
+function getProductPrice(product: FloraProduct, selectedVariation?: string): number {
+  if (selectedVariation && product.variationsData) {
+    const variation = product.variationsData.find((v: any) => 
+      v.attributes.some((attr: any) => attr.option === selectedVariation)
+    )
+    if (variation) {
+      return parseFloat(variation.price || '0')
+    }
+  }
+  return parseFloat(product.price || '0')
+}
+
+function getProductImage(product: FloraProduct): string {
+  return product.images?.[0]?.src || '/flora_chip_optimized.webp'
+}
+
+function getStockStatus(product: FloraProduct): 'instock' | 'outofstock' | 'onbackorder' {
+  return product.stock_status || 'instock'
+}
+
+function getProductSizes(product: FloraProduct): string[] {
+  if (!product.attributes) return []
+  
+  const sizeAttribute = product.attributes.find(attr => 
+    attr.name.toLowerCase() === 'size' || 
+    attr.name.toLowerCase() === 'weight' ||
+    attr.name.toLowerCase() === 'amount'
+  )
+  
+  return sizeAttribute?.options || []
+}
 
 interface FloraDenseViewProps {
   products: FloraProduct[]
-  onAddToCart: (product: FloraProduct, selectedVariation: string) => void
+  selectedOptions: Record<number, string>
+  onAddToCart: (product: FloraProduct) => void
   onProductClick: (product: FloraProduct) => void
-  selectedOptions?: Record<number, string>
-  onOptionSelect?: (productId: number, option: string) => void
+  onOptionSelect: (productId: number, option: string) => void
 }
 
 // Product Image Component matching Flora's exact styling
@@ -281,12 +336,12 @@ export default function FloraDenseView({ products, onAddToCart, onProductClick, 
                       {/* Stock Status */}
                       <div className="text-xs mb-1">
                         <span className={`${
-                          productStockStatus === 'out-of-stock' ? 'text-red-400' : 
-                          productStockStatus === 'low-stock' ? 'text-yellow-400' : 
+                          productStockStatus === 'outofstock' ? 'text-red-400' : 
+                          productStockStatus === 'onbackorder' ? 'text-orange-400' : 
                           'text-green-400'
                         }`}>
-                          {productStockStatus === 'out-of-stock' ? 'Out of Stock' : 
-                           productStockStatus === 'low-stock' ? `${product.stock_quantity} left` : 
+                          {productStockStatus === 'outofstock' ? 'Out of Stock' : 
+                           product.stock_quantity !== null ? `${product.stock_quantity} in stock` :
                            'In Stock'}
                         </span>
                       </div>
@@ -372,17 +427,17 @@ export default function FloraDenseView({ products, onAddToCart, onProductClick, 
                           onClick={(e) => {
                             e.stopPropagation()
                             if (selectedOption) {
-                              onAddToCart(product, selectedOption)
+                              onAddToCart(product)
                             }
                           }}
-                          disabled={productStockStatus === 'out-of-stock' || !selectedOption}
+                          disabled={productStockStatus === 'outofstock' || !selectedOption}
                           className={`w-full px-4 py-2 border text-sm font-light transition-all duration-300 min-h-[40px] ${
-                            productStockStatus === 'out-of-stock' || !selectedOption
+                            productStockStatus === 'outofstock' || !selectedOption
                               ? 'bg-white/5 border-white/10 text-white/40 cursor-not-allowed'
                               : 'bg-white/5 hover:bg-white/10 border-white/10 hover:border-white/20 text-white/80 hover:text-white hover:scale-[1.02] active:scale-95'
                           }`}
                         >
-                          {productStockStatus === 'out-of-stock' 
+                          {productStockStatus === 'outofstock' 
                             ? 'Out of Stock' 
                             : !selectedOption 
                               ? 'Select Option First' 

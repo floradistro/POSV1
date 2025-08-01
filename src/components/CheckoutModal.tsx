@@ -2,12 +2,12 @@
 
 import { useState } from 'react'
 import { X, CreditCard, DollarSign, Loader2 } from 'lucide-react'
-import { FloraProduct, floraAPI, CreateOrderData } from '@/lib/woocommerce'
+import { floraAPI, CreateOrderData } from '../lib/woocommerce'
 import { useMutation } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 
-// Main page cart item interface (different from store cart)
-interface MainPageCartItem {
+// Cart item interface (matches the one used in Cart component)
+interface CartItem {
   id: number
   name: string
   price: string
@@ -19,7 +19,7 @@ interface MainPageCartItem {
 interface CheckoutModalProps {
   isOpen: boolean
   onClose: () => void
-  cartItems: MainPageCartItem[]
+  cartItems: CartItem[]
   total: number
   onSuccess: () => void
 }
@@ -30,12 +30,12 @@ export function CheckoutModal({ isOpen, onClose, cartItems, total, onSuccess }: 
   const [customerEmail, setCustomerEmail] = useState('')
 
   const createOrderMutation = useMutation({
-    mutationFn: (orderData: CreateOrderData) => {
-      console.log('🚀 Mutation function called with:', orderData)
+    mutationFn: async (orderData: CreateOrderData) => {
+      console.log('🚀 Creating order with data:', orderData)
       return floraAPI.createOrder(orderData)
     },
     onSuccess: (data) => {
-      console.log('✅ Mutation success:', data)
+      console.log('✅ Order created successfully:', data)
       toast.success(`Order #${data.id} completed successfully!`)
       onSuccess()
       onClose()
@@ -45,117 +45,149 @@ export function CheckoutModal({ isOpen, onClose, cartItems, total, onSuccess }: 
       setCustomerEmail('')
     },
     onError: (error) => {
-      console.error('❌ Mutation error:', error)
+      console.error('❌ Order creation failed:', error)
       toast.error(`Failed to create order: ${error.message}`)
     },
   })
 
-  const handleCheckout = () => {
-    console.log('🛒 Starting checkout process...')
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (paymentMethod === 'cash') {
+      const received = parseFloat(cashReceived)
+      if (isNaN(received) || received < total) {
+        toast.error('Cash received must be greater than or equal to total')
+        return
+      }
+    }
+
+    console.log('Processing checkout...')
     console.log('Payment method:', paymentMethod)
-    console.log('Cart items:', cartItems)
     console.log('Total:', total)
     
     const orderData: CreateOrderData = {
       payment_method: paymentMethod,
       payment_method_title: paymentMethod === 'cash' ? 'Cash' : 'Card',
       set_paid: true,
-      line_items: cartItems.map((item) => ({
+      billing: {
+        first_name: '',
+        last_name: '',
+        address_1: '',
+        address_2: '',
+        city: '',
+        state: '',
+        postcode: '',
+        country: 'US',
+        email: customerEmail || '',
+        phone: ''
+      },
+      shipping: {
+        first_name: '',
+        last_name: '',
+        address_1: '',
+        address_2: '',
+        city: '',
+        state: '',
+        postcode: '',
+        country: 'US'
+      },
+      shipping_lines: [],
+      line_items: cartItems.map(item => ({
         product_id: item.id,
         quantity: item.cartQuantity,
-        // For variations, we'll need to find the variation ID from the selectedVariation string
-        // This is a simplified approach - in production you'd want to store the actual variation ID
-        meta_data: item.selectedVariation ? [
-          {
-            key: 'selected_variation',
-            value: item.selectedVariation
-          }
-        ] : undefined
-      })),
-      ...(customerEmail && { billing: { email: customerEmail } }),
+        meta_data: item.selectedVariation !== 'default' ? [{
+          key: 'variation',
+          value: item.selectedVariation
+        }] : undefined
+      }))
     }
 
-    console.log('📦 Order data:', orderData)
     createOrderMutation.mutate(orderData)
   }
 
-  const change = paymentMethod === 'cash' && cashReceived 
-    ? parseFloat(cashReceived) - total 
-    : 0
+  const calculateChange = () => {
+    const received = parseFloat(cashReceived)
+    return isNaN(received) ? 0 : Math.max(0, received - total)
+  }
 
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-background-secondary rounded-lg p-6 w-full max-w-md animate-fade-in">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-text">Checkout</h2>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-background-primary rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-border">
+          <h2 className="text-xl font-semibold text-text-primary">Checkout</h2>
           <button
             onClick={onClose}
-            className="text-text-secondary hover:text-text transition-colors"
+            className="text-text-secondary hover:text-text-primary transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="space-y-4">
+        {/* Content */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Order Summary */}
-          <div className="bg-background rounded-lg p-4">
-            <h3 className="font-medium text-text mb-2">Order Summary</h3>
-            <div className="space-y-1 text-sm">
-              <div className="flex justify-between">
-                <span className="text-text-secondary">Items</span>
-                <span className="text-text">{cartItems.length}</span>
-              </div>
-              <div className="flex justify-between font-bold">
-                <span className="text-text">Total</span>
-                <span className="text-primary">${total.toFixed(2)}</span>
+          <div className="space-y-3">
+            <h3 className="font-medium text-text-primary">Order Summary</h3>
+            <div className="space-y-2">
+              {cartItems.map((item) => (
+                <div key={`${item.id}-${item.selectedVariation}`} className="flex justify-between text-sm">
+                  <span className="text-text-secondary">
+                    {item.name} {item.selectedVariation !== 'default' && `(${item.selectedVariation})`} × {item.cartQuantity}
+                  </span>
+                  <span className="text-text-primary font-medium">
+                    ${(parseFloat(item.price) * item.cartQuantity).toFixed(2)}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="pt-2 border-t border-border">
+              <div className="flex justify-between font-semibold text-text-primary">
+                <span>Total</span>
+                <span>${total.toFixed(2)}</span>
               </div>
             </div>
           </div>
 
-          {/* Customer Email (Optional) */}
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-text mb-2">
+          {/* Customer Email */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-text-primary">
               Customer Email (Optional)
             </label>
             <input
-              id="email"
               type="email"
               value={customerEmail}
               onChange={(e) => setCustomerEmail(e.target.value)}
+              className="w-full px-3 py-2 border border-border rounded-lg bg-background-secondary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="customer@example.com"
-              className="w-full px-3 py-2 bg-background rounded-lg border border-background-tertiary focus:border-primary focus:outline-none text-text placeholder-text-tertiary"
             />
           </div>
 
           {/* Payment Method */}
-          <div>
-            <label className="block text-sm font-medium text-text mb-2">Payment Method</label>
-            <div className="flex gap-2">
+          <div className="space-y-3">
+            <h3 className="font-medium text-text-primary">Payment Method</h3>
+            <div className="grid grid-cols-2 gap-3">
               <button
-                onClick={() => {
-                  console.log('💰 Cash payment selected')
-                  setPaymentMethod('cash')
-                }}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg font-medium transition-colors ${
+                type="button"
+                onClick={() => setPaymentMethod('cash')}
+                className={`p-3 rounded-lg border-2 transition-colors flex items-center justify-center gap-2 ${
                   paymentMethod === 'cash'
-                    ? 'bg-primary text-white'
-                    : 'bg-background-tertiary text-text-secondary hover:bg-background-tertiary/80'
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border bg-background-secondary text-text-secondary hover:border-primary/50'
                 }`}
               >
                 <DollarSign className="w-4 h-4" />
                 Cash
               </button>
               <button
-                onClick={() => {
-                  console.log('💳 Card payment selected')
-                  setPaymentMethod('card')
-                }}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg font-medium transition-colors ${
+                type="button"
+                onClick={() => setPaymentMethod('card')}
+                className={`p-3 rounded-lg border-2 transition-colors flex items-center justify-center gap-2 ${
                   paymentMethod === 'card'
-                    ? 'bg-primary text-white'
-                    : 'bg-background-tertiary text-text-secondary hover:bg-background-tertiary/80'
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border bg-background-secondary text-text-secondary hover:border-primary/50'
                 }`}
               >
                 <CreditCard className="w-4 h-4" />
@@ -164,83 +196,53 @@ export function CheckoutModal({ isOpen, onClose, cartItems, total, onSuccess }: 
             </div>
           </div>
 
-          {/* Cash Received */}
+          {/* Cash Payment Details */}
           {paymentMethod === 'cash' && (
-            <div>
-              <label htmlFor="cash" className="block text-sm font-medium text-text mb-2">
-                Cash Received
-              </label>
-              <input
-                id="cash"
-                type="number"
-                value={cashReceived}
-                onChange={(e) => setCashReceived(e.target.value)}
-                placeholder="0.00"
-                min={total}
-                step="0.01"
-                className="w-full px-3 py-2 bg-background rounded-lg border border-background-tertiary focus:border-primary focus:outline-none text-text placeholder-text-tertiary"
-              />
-              {cashReceived && parseFloat(cashReceived) >= total && (
-                <p className="mt-2 text-sm">
-                  Change: <span className="font-bold text-primary">${change.toFixed(2)}</span>
-                </p>
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-text-primary">
+                  Cash Received
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min={total}
+                  value={cashReceived}
+                  onChange={(e) => setCashReceived(e.target.value)}
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background-secondary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder={total.toFixed(2)}
+                  required
+                />
+              </div>
+              {cashReceived && (
+                <div className="p-3 bg-background-secondary rounded-lg">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-text-secondary">Change Due</span>
+                    <span className="text-text-primary font-medium">
+                      ${calculateChange().toFixed(2)}
+                    </span>
+                  </div>
+                </div>
               )}
             </div>
           )}
 
-          {/* Actions */}
-          <div className="flex gap-3 pt-4">
-            <button
-              onClick={onClose}
-              className="flex-1 py-2 px-4 border border-background-tertiary rounded-lg font-medium text-text-secondary hover:bg-background-tertiary/50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={(e) => {
-                e.preventDefault()
-                console.log('🖱️ Complete Sale button clicked!')
-                
-                const isDisabled = createOrderMutation.isPending || (paymentMethod === 'cash' && (!cashReceived || parseFloat(cashReceived) < total))
-                console.log('Button disabled?', isDisabled)
-                console.log('Payment method:', paymentMethod)
-                console.log('Cash received:', cashReceived)
-                console.log('Total:', total)
-                console.log('Mutation pending?', createOrderMutation.isPending)
-                
-                if (paymentMethod === 'cash') {
-                  console.log('Cash validation:', {
-                    cashReceived,
-                    cashReceivedParsed: parseFloat(cashReceived),
-                    total,
-                    isValid: cashReceived && parseFloat(cashReceived) >= total
-                  })
-                }
-                
-                if (!isDisabled) {
-                  console.log('🎯 Proceeding with checkout...')
-                  handleCheckout()
-                } else {
-                  console.log('⚠️ Button is disabled, not proceeding')
-                }
-              }}
-              disabled={
-                createOrderMutation.isPending ||
-                (paymentMethod === 'cash' && (!cashReceived || parseFloat(cashReceived) < total))
-              }
-              className="flex-1 py-2 px-4 bg-primary hover:bg-primary-dark disabled:bg-primary/50 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-            >
-              {createOrderMutation.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                'Complete Sale'
-              )}
-            </button>
-          </div>
-        </div>
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={createOrderMutation.isPending}
+            className="w-full bg-primary hover:bg-primary/90 disabled:bg-primary/50 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+          >
+            {createOrderMutation.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              `Complete Order - $${total.toFixed(2)}`
+            )}
+          </button>
+        </form>
       </div>
     </div>
   )

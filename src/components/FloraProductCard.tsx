@@ -1,7 +1,55 @@
 'use client'
 
 import { useState } from 'react'
-import { FloraProduct, getProductPrice, getRegularPrice, isOnSale, getProductImage, getStockStatus, getDisplayPrice } from '../lib/woocommerce'
+
+// Temporary interface until new API is implemented
+interface FloraProduct {
+  id: number
+  name: string
+  slug: string
+  description: string
+  short_description: string
+  price: string
+  regular_price: string
+  sale_price: string
+  on_sale: boolean
+  stock_status: 'instock' | 'outofstock' | 'onbackorder'
+  stock_quantity: number | null
+  categories: Array<{ id: number; name: string; slug: string }>
+  images: Array<{ id: number; src: string; name: string; alt: string }>
+  attributes: Array<{ id: number; name: string; options: string[] }>
+  meta_data: Array<{ key: string; value: any }>
+  variations?: number[]
+  has_options?: boolean
+  type: string
+  variationsData?: any[]
+}
+
+// Helper functions
+function getProductPrice(product: FloraProduct): number {
+  return parseFloat(product.price || '0')
+}
+
+function getRegularPrice(product: FloraProduct): number {
+  return parseFloat(product.regular_price || product.price || '0')
+}
+
+function isOnSale(product: FloraProduct): boolean {
+  return product.on_sale || false
+}
+
+function getProductImage(product: FloraProduct): string {
+  return product.images?.[0]?.src || '/flora_chip_optimized.webp'
+}
+
+function getStockStatus(product: FloraProduct): 'instock' | 'outofstock' | 'onbackorder' {
+  return product.stock_status || 'instock'
+}
+
+function getDisplayPrice(product: FloraProduct): string {
+  const price = getProductPrice(product)
+  return price > 0 ? `$${price.toFixed(2)}` : 'Price on request'
+}
 
 interface FloraProductCardProps {
   product: FloraProduct
@@ -23,18 +71,18 @@ export default function FloraProductCard({ product, onAddToCart, onProductClick 
 
   const getStockColor = () => {
     switch (stockStatus) {
-      case 'out-of-stock': return 'text-vscode-accent'
-      case 'low-stock': return 'text-warning'
-      default: return 'text-success'
+      case 'outofstock': return 'text-vscode-accent'
+      case 'onbackorder': return 'text-orange-400'
+      default: return 'text-green-400'
     }
   }
 
   const getStockText = () => {
-    switch (stockStatus) {
-      case 'out-of-stock': return 'Out of Stock'
-      case 'low-stock': return `${product.stock_quantity} left`
-      default: return 'In Stock'
+    if (stockStatus === 'outofstock') return 'Out of Stock'
+    if (product.stock_quantity !== null) {
+      return `${product.stock_quantity} in stock`
     }
+    return 'In Stock'
   }
 
   return (
@@ -104,7 +152,7 @@ export default function FloraProductCard({ product, onAddToCart, onProductClick 
           <button
             onClick={(e) => {
               e.stopPropagation()
-              if (stockStatus !== 'out-of-stock') {
+              if (stockStatus !== 'outofstock') {
                 if (isVariableProduct) {
                   // For variable products, open product details instead of adding to cart
                   onProductClick(product)
@@ -113,14 +161,14 @@ export default function FloraProductCard({ product, onAddToCart, onProductClick 
                 }
               }
             }}
-            disabled={stockStatus === 'out-of-stock'}
+            disabled={stockStatus === 'outofstock'}
             className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-300 ${
-              stockStatus === 'out-of-stock'
+              stockStatus === 'outofstock'
                 ? 'bg-vscode-panel text-vscode-textMuted cursor-not-allowed border border-vscode-border'
                 : 'bg-vscode-accent hover:bg-vscode-accentHover text-white hover:scale-105 group-hover:scale-110 shadow-vscode hover:shadow-vscode-lg border border-vscode-accent'
             }`}
           >
-            {stockStatus === 'out-of-stock' 
+            {stockStatus === 'outofstock' 
               ? 'Sold Out' 
               : isVariableProduct 
                 ? 'View Options' 
