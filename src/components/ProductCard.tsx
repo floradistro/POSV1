@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import { Plus } from 'lucide-react'
-import { FloraProduct } from '../lib/woocommerce'
 import { useState } from 'react'
+import { FloraProduct } from '../lib/woocommerce'
 
 // Helper functions
 function getStockStatus(product: FloraProduct): 'instock' | 'outofstock' | 'onbackorder' {
@@ -18,25 +18,10 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onAddToCart }: ProductCardProps) {
-  const [selectedOption, setSelectedOption] = useState<string>('')
+  const [selectedVariation, setSelectedVariation] = useState<string>('default')
 
   // Handle pricing for weight-based products vs regular products
   const getDisplayPrice = () => {
-    if (selectedOption && product.mli_product_type === 'weight' && product.pricing_tiers) {
-      if (selectedOption.includes('preroll-')) {
-        const count = selectedOption.replace('preroll-', '')
-        return product.preroll_pricing_tiers?.[count] || 0
-      } else if (selectedOption.includes('flower-')) {
-        const grams = selectedOption.replace('flower-', '')
-        return product.pricing_tiers[grams] || 0
-      }
-    }
-    
-    if (selectedOption && product.mli_product_type === 'quantity' && product.pricing_tiers) {
-      const qty = selectedOption.replace('qty-', '')
-      return product.pricing_tiers[qty] || 0
-    }
-
     if (product.mli_product_type === 'weight' && product.pricing_tiers) {
       // For weight-based products, show the best per-gram rate (from largest quantity)
       const pricePerGramRates = Object.entries(product.pricing_tiers).map(([grams, totalPrice]) => 
@@ -76,20 +61,18 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
 
   const isOutOfStock = stockStatus === 'outofstock'
 
-  const handleAddToCart = () => {
-    if (selectedOption) {
-      onAddToCart(product, selectedOption)
-    } else if (product.mli_product_type === 'weight' || product.mli_product_type === 'quantity') {
-      // For products with options, require selection
-      return
-    } else {
-      // For regular products, add without variation
-      onAddToCart(product)
+  const handleVariationSelect = (variation: string) => {
+    if (!isOutOfStock) {
+      setSelectedVariation(variation)
     }
   }
 
-  const isAddToCartDisabled = isOutOfStock || 
-    ((product.mli_product_type === 'weight' || product.mli_product_type === 'quantity') && !selectedOption)
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!isOutOfStock) {
+      onAddToCart(product, selectedVariation)
+    }
+  }
 
   return (
     <div className="bg-vscode-bgSecondary px-0 py-1 hover:bg-vscode-bgTertiary transition-all duration-300 cursor-pointer group border border-vscode-border hover:border-vscode-accent/30">
@@ -135,23 +118,23 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
               Object.keys(product.pricing_tiers).length === 5 ? 'grid-cols-2' : 'grid-cols-3'
             }`}>
               {Object.entries(product.pricing_tiers).map(([grams, totalPrice]) => {
-                const optionKey = `flower-${grams}`
-                const isSelected = selectedOption === optionKey
+                const variationKey = `flower-${grams}`
+                const isSelected = selectedVariation === variationKey
                 return (
                   <button
                     key={grams}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setSelectedOption(isSelected ? '' : optionKey)
-                    }}
-                    className={`flex justify-between px-1 py-0.5 transition-all duration-200 hover:scale-105 ${
-                      isSelected 
-                        ? 'bg-vscode-accent text-white border border-vscode-accent' 
-                        : 'bg-vscode-bgTertiary hover:bg-vscode-bgSecondary border border-transparent'
+                    onClick={() => handleVariationSelect(variationKey)}
+                    disabled={isOutOfStock}
+                    className={`flex justify-between px-1 py-0.5 transition-colors border ${
+                      isOutOfStock 
+                        ? 'bg-gray-400 cursor-not-allowed text-gray-600 border-gray-500' 
+                        : isSelected
+                        ? 'bg-vscode-accent text-white border-vscode-accent'
+                        : 'bg-vscode-bgTertiary hover:bg-vscode-accent/20 cursor-pointer border-transparent hover:border-vscode-accent/50'
                     }`}
                   >
                     <span>{grams}g</span>
-                    <span className={`font-medium ${isSelected ? 'text-white' : 'text-vscode-accent'}`}>
+                    <span className="font-medium">
                       ${totalPrice.toFixed(2)}
                     </span>
                   </button>
@@ -169,23 +152,23 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
                   Object.keys(product.preroll_pricing_tiers).length <= 4 ? 'grid-cols-2' : 'grid-cols-3'
                 }`}>
                   {Object.entries(product.preroll_pricing_tiers).map(([count, totalPrice]) => {
-                    const optionKey = `preroll-${count}`
-                    const isSelected = selectedOption === optionKey
+                    const variationKey = `preroll-${count}`
+                    const isSelected = selectedVariation === variationKey
                     return (
                       <button
                         key={count}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setSelectedOption(isSelected ? '' : optionKey)
-                        }}
-                        className={`flex justify-between px-1 py-0.5 transition-all duration-200 hover:scale-105 ${
-                          isSelected 
-                            ? 'bg-vscode-accent text-white border border-vscode-accent' 
-                            : 'bg-vscode-bgTertiary hover:bg-vscode-bgSecondary border border-transparent'
+                        onClick={() => handleVariationSelect(variationKey)}
+                        disabled={isOutOfStock}
+                        className={`flex justify-between px-1 py-0.5 transition-colors border ${
+                          isOutOfStock 
+                            ? 'bg-gray-400 cursor-not-allowed text-gray-600 border-gray-500' 
+                            : isSelected
+                            ? 'bg-vscode-accent text-white border-vscode-accent'
+                            : 'bg-vscode-bgTertiary hover:bg-vscode-accent/20 cursor-pointer border-transparent hover:border-vscode-accent/50'
                         }`}
                       >
                         <span>{count}x</span>
-                        <span className={`font-medium ${isSelected ? 'text-white' : 'text-vscode-accent'}`}>
+                        <span className="font-medium">
                           ${totalPrice.toFixed(2)}
                         </span>
                       </button>
@@ -195,15 +178,9 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
               </>
             )}
             
-            {selectedOption ? (
-              <div className="text-xs text-vscode-accent text-center font-medium">
-                Selected: ${price.toFixed(2)}
-              </div>
-            ) : (
-              <div className="text-xs text-vscode-textMuted text-center">
-                Select an option above
-              </div>
-            )}
+            <div className="text-xs text-vscode-textMuted text-center">
+              Best rate: ${price.toFixed(2)}/g
+            </div>
           </div>
         ) : product.mli_product_type === 'quantity' && product.pricing_tiers ? (
           // Quantity-based pricing tiers
@@ -211,38 +188,29 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
             <div className="text-xs text-vscode-textMuted">Quantity Pricing</div>
             <div className="grid grid-cols-2 gap-1 text-xs">
               {Object.entries(product.pricing_tiers).slice(0, 4).map(([qty, pricePerUnit]) => {
-                const optionKey = `qty-${qty}`
-                const isSelected = selectedOption === optionKey
+                const variationKey = `qty-${qty}`
+                const isSelected = selectedVariation === variationKey
                 return (
                   <button
                     key={qty}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setSelectedOption(isSelected ? '' : optionKey)
-                    }}
-                    className={`flex justify-between px-1 py-0.5 transition-all duration-200 hover:scale-105 ${
-                      isSelected 
-                        ? 'bg-vscode-accent text-white border border-vscode-accent' 
-                        : 'bg-vscode-bgTertiary hover:bg-vscode-bgSecondary border border-transparent'
+                    onClick={() => handleVariationSelect(variationKey)}
+                    disabled={isOutOfStock}
+                    className={`flex justify-between px-1 py-0.5 transition-colors border ${
+                      isOutOfStock 
+                        ? 'bg-gray-400 cursor-not-allowed text-gray-600 border-gray-500' 
+                        : isSelected
+                        ? 'bg-vscode-accent text-white border-vscode-accent'
+                        : 'bg-vscode-bgTertiary hover:bg-vscode-accent/20 cursor-pointer border-transparent hover:border-vscode-accent/50'
                     }`}
                   >
                     <span>{qty} units</span>
-                    <span className={`font-medium ${isSelected ? 'text-white' : 'text-vscode-accent'}`}>
+                    <span className="font-medium">
                       ${pricePerUnit.toFixed(2)} ea
                     </span>
                   </button>
                 )
               })}
             </div>
-            {selectedOption ? (
-              <div className="text-xs text-vscode-accent text-center font-medium">
-                Selected: ${price.toFixed(2)}
-              </div>
-            ) : (
-              <div className="text-xs text-vscode-textMuted text-center">
-                Select quantity above
-              </div>
-            )}
           </div>
         ) : (
           // Standard pricing
@@ -259,22 +227,15 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
             {getStockText()}
           </span>
           
+          {/* Round Add Button - Always shown */}
           <button
-            onClick={(e) => {
-              e.stopPropagation()
-              handleAddToCart()
-            }}
-            disabled={isAddToCartDisabled}
-            className={`p-1 transition-all duration-200 ${
-              isAddToCartDisabled
+            onClick={handleAddToCart}
+            disabled={isOutOfStock}
+            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
+              isOutOfStock 
                 ? 'bg-gray-400 cursor-not-allowed' 
-                : 'bg-vscode-accent hover:bg-vscode-accent/80 text-white hover:scale-105'
+                : 'bg-vscode-accent hover:bg-vscode-accent/80 text-white hover:scale-110 shadow-lg hover:shadow-xl'
             }`}
-            title={
-              isOutOfStock ? 'Out of stock' :
-              ((product.mli_product_type === 'weight' || product.mli_product_type === 'quantity') && !selectedOption) ? 'Select an option first' :
-              'Add to cart'
-            }
           >
             <Plus className="w-4 h-4" />
           </button>

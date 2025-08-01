@@ -12,9 +12,10 @@ interface ProductGridProps {
   searchQuery: string
   onAddToCart: (product: FloraProduct) => void
   onProductCountChange?: (count: number) => void
+  isCustomerViewOpen?: boolean
 }
 
-export function ProductGrid({ category, searchQuery, onAddToCart, onProductCountChange }: ProductGridProps) {
+export function ProductGrid({ category, searchQuery, onAddToCart, onProductCountChange, isCustomerViewOpen = false }: ProductGridProps) {
   const { store } = useAuth()
 
   const { data: products = [], isLoading, error } = useQuery({
@@ -91,7 +92,11 @@ export function ProductGrid({ category, searchQuery, onAddToCart, onProductCount
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-0 pb-8">
+    <div className={`grid grid-cols-1 sm:grid-cols-2 gap-0 pb-8 ${
+      isCustomerViewOpen 
+        ? 'md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2' 
+        : 'md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3'
+    }`}>
       {filteredProducts.map((product: FloraProduct) => (
         <ProductCard
           key={product.id}
