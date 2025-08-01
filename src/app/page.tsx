@@ -97,7 +97,7 @@ export default function FloraDistrosPOS() {
         <div className="bg-background-secondary border-b border-border px-2 py-1 flex-shrink-0">
           <div className="flex items-center justify-between gap-2">
             {/* Category Selector */}
-            <div className="flex gap-0.5">
+            <div className="flex gap-1">
               {mainCategories.map((category) => (
                 <button
                   key={category.slug}
@@ -105,7 +105,7 @@ export default function FloraDistrosPOS() {
                     console.log(`🏷️ Category clicked: ${category.name} (slug: ${category.slug}, id: ${category.id})`)
                     setActiveCategory(category.slug)
                   }}
-                  className={`px-1.5 py-0.5 rounded text-xs font-medium transition-colors ${
+                  className={`px-2 py-1 rounded text-sm font-medium transition-colors ${
                     activeCategory === category.slug
                       ? 'bg-primary text-white'
                       : 'bg-background-tertiary text-text-secondary hover:bg-background-tertiary/80'
@@ -123,7 +123,7 @@ export default function FloraDistrosPOS() {
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-2 py-0.5 bg-background-tertiary border border-border rounded text-sm text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full px-3 py-1.5 bg-background-tertiary border border-border rounded text-sm text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
 
