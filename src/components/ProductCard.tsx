@@ -49,7 +49,7 @@ export function ProductCard({ product, onAddToCart, globalSelectedProduct, setGl
     switch (stockStatus) {
       case 'outofstock': return 'text-red-400'
       case 'onbackorder': return 'text-orange-400'
-      default: return 'text-green-400'
+      default: return 'text-vscode-textMuted'
     }
   }
 
@@ -114,20 +114,98 @@ export function ProductCard({ product, onAddToCart, globalSelectedProduct, setGl
 
   const selectedPrice = getSelectedPrice()
 
+  if (isListView) {
+    // List View - Table Layout
+    return (
+      <div className="relative bg-vscode-bgSecondary hover:bg-vscode-bgTertiary transition-all duration-300 cursor-pointer group border-b border-white/[0.04] px-3 py-2 min-h-[50px]">
+        <div className="flex items-center w-full gap-4">
+          {/* Product Image */}
+          <div className="w-10 h-10 flex-shrink-0 relative">
+            {product.images?.[0] ? (
+              <Image
+                src={product.images[0].src}
+                alt={product.images[0].alt || product.name}
+                fill
+                className="object-contain rounded"
+                sizes="40px"
+              />
+            ) : (
+              <div className="w-full h-full bg-vscode-bgTertiary flex items-center justify-center border border-white/[0.04] rounded">
+                <span className="text-vscode-textMuted text-xs">No img</span>
+              </div>
+            )}
+            {isOutOfStock && (
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded">
+                <span className="text-white text-xs font-medium">OOS</span>
+              </div>
+            )}
+          </div>
+
+          {/* Product Name - 30% */}
+          <div className="flex-1 min-w-0 max-w-[30%]">
+            <h3 className="font-medium text-vscode-text text-sm line-clamp-1">{product.name}</h3>
+            <div className="text-xs text-vscode-textMuted line-clamp-1">
+              {product.short_description || product.description || ''}
+            </div>
+          </div>
+
+          {/* Category - 15% */}
+          <div className="w-[15%] flex-shrink-0">
+            <span className="text-xs text-vscode-textMuted">
+              {product.categories?.[0]?.name || 'Uncategorized'}
+            </span>
+          </div>
+
+          {/* Stock - 15% */}
+          <div className="w-[15%] flex-shrink-0">
+            <span className={`text-xs ${getStockColor()}`}>
+              {getStockText()}
+            </span>
+          </div>
+
+          {/* Price - 15% */}
+          <div className="w-[15%] flex-shrink-0">
+            {(product.mli_product_type === 'weight' || product.mli_product_type === 'quantity') && selectedPrice ? (
+              <span className="text-green-400 font-bold text-sm">${selectedPrice.toFixed(2)}</span>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="text-green-400 font-bold text-sm">${price.toFixed(2)}</span>
+                {hasDiscount && (
+                  <span className="text-vscode-textMuted text-xs line-through">${regularPrice.toFixed(2)}</span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Action - 10% */}
+          <div className="w-[10%] flex-shrink-0 flex justify-end">
+            {(product.mli_product_type === 'weight' || product.mli_product_type === 'quantity') && selectedVariation !== 'default' && (
+              <button
+                onClick={handleAddToCart}
+                disabled={isOutOfStock}
+                className={`px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${
+                  isOutOfStock 
+                    ? 'bg-gray-400 cursor-not-allowed text-gray-600' 
+                    : 'bg-blue-500 text-white hover:bg-blue-600'
+                }`}
+              >
+                <Plus className="w-3 h-3" />
+                Add
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Grid View Layout
   return (
-    <div className={`relative bg-vscode-bgSecondary hover:bg-vscode-bgTertiary transition-all duration-300 cursor-pointer group border border-white/[0.04] hover:border-white/[0.12] ${
-      isListView 
-        ? 'flex items-center gap-2 px-3 py-1 min-h-[40px]' 
-        : 'flex flex-col'
-    }`}>
-      {/* Main Content Area */}
-      <div className={`${isListView ? 'flex items-center gap-2 flex-1' : 'flex gap-2 p-2'}`}>
+    <div className="relative bg-vscode-bgSecondary hover:bg-vscode-bgTertiary transition-all duration-300 cursor-pointer group border border-white/[0.04] hover:border-white/[0.12] flex flex-col h-full">
+      {/* Main Content Area - Fixed Height */}
+      <div className="flex gap-2 p-2 flex-1">
         {/* Product Image */}
-        <div className={`relative ${
-          isListView 
-            ? 'w-8 h-8 flex-shrink-0 mb-0' 
-            : 'w-20 h-20 flex-shrink-0'
-        }`}>
+        <div className="w-20 h-20 flex-shrink-0 relative">
           {product.images?.[0] ? (
             <Image
               src={product.images[0].src}
@@ -154,89 +232,59 @@ export function ProductCard({ product, onAddToCart, globalSelectedProduct, setGl
         </div>
         
         {/* Product Information */}
-        <div className={`${isListView ? 'flex-1' : 'flex-1 min-w-0'}`}>
-          <div className={`flex items-start justify-between ${isListView ? 'mb-0' : 'mb-1'}`}>
+        <div className="flex-1 min-w-0 flex flex-col">
+          <div className="flex items-start justify-between mb-1">
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between mb-1">
-                    <h3 className={`font-medium text-vscode-text group-hover:text-white transition-colors flex-1 ${
-                      isListView ? 'text-xs line-clamp-1' : 'text-sm line-clamp-1'
-                    }`}>{product.name}</h3>
+                    <h3 className="font-medium text-vscode-text group-hover:text-white transition-colors flex-1 text-sm line-clamp-1">{product.name}</h3>
                     {(product.mli_product_type === 'weight' || product.mli_product_type === 'quantity') && selectedPrice && (
-                      <span className={`text-vscode-accent font-bold ml-2 flex-shrink-0 ${
-                        isListView ? 'text-xs' : 'text-sm'
-                      }`}>${selectedPrice.toFixed(2)}</span>
+                      <span className="text-green-400 font-bold ml-2 flex-shrink-0 text-sm">${selectedPrice.toFixed(2)}</span>
                     )}
                   </div>
-                  {!isListView && (
-                    <div className="w-full overflow-visible">
-                      <ProductLineage productId={product.id} product={product} />
-                    </div>
-                  )}
+                  <div className="w-full overflow-visible">
+                    <ProductLineage productId={product.id} product={product} />
+                  </div>
                 </div>
-                {!isListView && <ProductNameSideInfo productId={product.id} />}
+                <ProductNameSideInfo productId={product.id} />
               </div>
             </div>
           </div>
           
           {/* Product Characteristics */}
-          {!isListView && <ProductCharacteristics productId={product.id} />}
+          <ProductCharacteristics productId={product.id} />
           
           {/* Standard Pricing Section */}
           {!(product.mli_product_type === 'weight' && product.pricing_tiers) && !(product.mli_product_type === 'quantity' && product.pricing_tiers) && (
             <>
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-vscode-accent font-bold text-lg">${price.toFixed(2)}</span>
+                <span className="text-green-400 font-bold text-lg">${price.toFixed(2)}</span>
                 {hasDiscount && (
                   <span className="text-vscode-textMuted text-sm line-through">${regularPrice.toFixed(2)}</span>
                 )}
               </div>
-              {!isListView && (
-                <div className="flex items-start justify-between mt-1">
-                  <span className={`text-xs ${getStockColor()}`}>
-                    {getStockText()}
-                  </span>
-                </div>
-              )}
+              <div className="flex items-start justify-between mt-1">
+                <span className={`text-xs ${getStockColor()}`}>
+                  {getStockText()}
+                </span>
+              </div>
             </>
           )}
           
-          {/* ACF Fields Display - Hidden in list view */}
-          {!isListView && (
-            <div className={`relative ${
-              (product.mli_product_type === 'weight' || product.mli_product_type === 'quantity') 
-                ? 'pb-12' 
-                : ''
-            }`}>
-              <ACFFieldsDisplay 
-                productId={product.id}
-                productName={product.name}
-              />
-            </div>
-          )}
-          
-          {/* Compact Add Button for List View */}
-          {isListView && (product.mli_product_type === 'weight' || product.mli_product_type === 'quantity') && selectedVariation !== 'default' && (
-            <button
-              onClick={handleAddToCart}
-              disabled={isOutOfStock}
-              className={`ml-auto px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${
-                isOutOfStock 
-                  ? 'bg-gray-400 cursor-not-allowed text-gray-600' 
-                  : 'bg-blue-500 text-white hover:bg-blue-600'
-              }`}
-            >
-              <Plus className="w-2 h-2" />
-              Add
-            </button>
-          )}
+          {/* ACF Fields Display - Flex-grow to push selectors down */}
+          <div className="flex-1">
+            <ACFFieldsDisplay 
+              productId={product.id}
+              productName={product.name}
+            />
+          </div>
         </div>
       </div>
       
-      {/* Weight/Quantity Selectors - Full Width Below Everything */}
-      {!isListView && (product.mli_product_type === 'weight' && product.pricing_tiers) && (
-        <div className="w-full space-y-2 mt-2 px-2 pb-12">
+      {/* Weight/Quantity Selectors - Aligned at Bottom */}
+      {(product.mli_product_type === 'weight' && product.pricing_tiers) && (
+        <div className="w-full space-y-1 px-2 pb-2 border-t border-white/[0.04] pt-2 mt-auto">
           {/* Flower Pricing */}
           <div className="text-xs text-vscode-textMuted">
             {product.preroll_pricing_tiers ? 'Flower (grams)' : 'Weight Options (grams)'}
@@ -267,7 +315,7 @@ export function ProductCard({ product, onAddToCart, globalSelectedProduct, setGl
           {/* Preroll Pricing (if available) */}
           {product.preroll_pricing_tiers && (
             <>
-              <div className="text-xs text-vscode-textMuted mt-2">
+              <div className="text-xs text-vscode-textMuted">
                 Pre-rolls (count)
               </div>
               <div className="flex gap-1 text-xs">
@@ -300,7 +348,7 @@ export function ProductCard({ product, onAddToCart, globalSelectedProduct, setGl
           </div>
           
           {/* Stock Information */}
-          <div className="flex items-center justify-center mt-2">
+          <div className="flex items-center justify-center">
             <span className={`text-xs ${getStockColor()}`}>
               {getStockText()}
             </span>
@@ -308,8 +356,8 @@ export function ProductCard({ product, onAddToCart, globalSelectedProduct, setGl
         </div>
       )}
       
-      {!isListView && (product.mli_product_type === 'quantity' && product.pricing_tiers) && (
-        <div className="w-full space-y-2 mt-2 px-2 pb-12">
+      {(product.mli_product_type === 'quantity' && product.pricing_tiers) && (
+        <div className="w-full space-y-1 px-2 pb-2 border-t border-white/[0.04] pt-2 mt-auto">
           <div className="text-xs text-vscode-textMuted">Quantity Pricing</div>
           <div className="flex gap-1 text-xs">
             {Object.entries(product.pricing_tiers || {}).slice(0, 4).map(([qty, pricePerUnit]) => {
@@ -335,7 +383,7 @@ export function ProductCard({ product, onAddToCart, globalSelectedProduct, setGl
           </div>
           
           {/* Stock Information */}
-          <div className="flex items-center justify-center mt-2">
+          <div className="flex items-center justify-center">
             <span className={`text-xs ${getStockColor()}`}>
               {getStockText()}
             </span>
@@ -343,18 +391,18 @@ export function ProductCard({ product, onAddToCart, globalSelectedProduct, setGl
         </div>
       )}
       
-      {/* Add Button - Bottom Right Corner */}
-      {!isListView && (product.mli_product_type === 'weight' || product.mli_product_type === 'quantity') && selectedVariation !== 'default' && (
+      {/* Add Button - Positioned in selector area */}
+      {(product.mli_product_type === 'weight' || product.mli_product_type === 'quantity') && selectedVariation !== 'default' && (
         <button
           onClick={handleAddToCart}
           disabled={isOutOfStock}
-          className={`absolute bottom-2 right-2 px-3 py-2 rounded text-sm font-medium transition-colors flex items-center gap-1 ${
+          className={`absolute bottom-1 right-1 px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${
             isOutOfStock 
               ? 'bg-gray-400 cursor-not-allowed text-gray-600' 
               : 'bg-blue-500 text-white hover:bg-blue-600 shadow-lg'
           }`}
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-3 h-3" />
           Add
         </button>
       )}
