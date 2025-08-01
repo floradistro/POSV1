@@ -16,96 +16,35 @@ export async function GET(
   console.log(`🔑 Using API base: ${API_BASE}`)
 
   try {
-    // Fetch tax rates from the Addify plugin endpoint
     const response = await fetch(url, {
       headers: {
         'Authorization': 'Basic ' + btoa(`${WC_CONSUMER_KEY}:${WC_CONSUMER_SECRET}`),
-        'Content-Type': 'application/json',
       },
-      cache: 'no-store' // Prevent caching
+      cache: 'no-store' // Prevent caching of the fetch request
     })
 
-    console.log(`📡 Response status: ${response.status}`)
-    console.log(`📡 Response headers:`, response.headers)
+    console.log('📡 Response status:', response.status)
+    console.log('📡 Response headers:', response.headers)
 
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error(`Failed to fetch tax rates: ${response.status}`)
-      console.error(`Error response: ${errorText}`)
-      
-      // If 404, provide a default response for testing
-      if (response.status === 404) {
-        console.log('⚠️ Tax rates endpoint not found, returning default test rates')
-        
-        // Default tax rates for testing - these should match your actual store configurations
-        const testTaxRates: Record<string, any> = {
-          '31': { // Charlotte Nations Ford
-            location_id: 31,
-            location_name: 'Charlotte Nations Ford',
-            tax_rates: [
-              { name: 'NC State Tax', rate: 4.75, type: 'percentage', compound: 'no' },
-              { name: 'Mecklenburg County Tax', rate: 2.5, type: 'percentage', compound: 'no' },
-              { name: 'Cannabis Excise Tax', rate: 15, type: 'percentage', compound: 'yes' }
-            ],
-            total_rate: 23.96
-          },
-          '30': { // Charlotte Monroe
-            location_id: 30,
-            location_name: 'Charlotte Monroe',
-            tax_rates: [
-              { name: 'NC State Tax', rate: 4.75, type: 'percentage', compound: 'no' },
-              { name: 'Mecklenburg County Tax', rate: 2.5, type: 'percentage', compound: 'no' },
-              { name: 'Cannabis Excise Tax', rate: 15, type: 'percentage', compound: 'yes' }
-            ],
-            total_rate: 23.96
-          },
-          '35': { // Elizabethton
-            location_id: 35,
-            location_name: 'Elizabethton',
-            tax_rates: [
-              { name: 'TN State Tax', rate: 7, type: 'percentage', compound: 'no' },
-              { name: 'Local Tax', rate: 2.5, type: 'percentage', compound: 'no' }
-            ],
-            total_rate: 9.5
-          },
-          '34': { // Salisbury
-            location_id: 34,
-            location_name: 'Salisbury',
-            tax_rates: [
-              { name: 'NC State Tax', rate: 4.75, type: 'percentage', compound: 'no' },
-              { name: 'Rowan County Tax', rate: 2, type: 'percentage', compound: 'no' }
-            ],
-            total_rate: 6.75
-          },
-          '32': { // Blowing Rock
-            location_id: 32,
-            location_name: 'Blowing Rock',
-            tax_rates: [
-              { name: 'NC State Tax', rate: 4.75, type: 'percentage', compound: 'no' },
-              { name: 'Watauga County Tax', rate: 2.25, type: 'percentage', compound: 'no' }
-            ],
-            total_rate: 7
-          }
-        }
-        
-        const storeData = testTaxRates[storeId] || {
-          location_id: parseInt(storeId),
-          location_name: 'Store ' + storeId,
-          tax_rates: [],
-          total_rate: 0
-        }
-        
-        return NextResponse.json(storeData)
-      }
-      
-      return NextResponse.json(
-        { error: 'Failed to fetch tax rates' },
-        { status: response.status }
-      )
+      throw new Error(`HTTP error! status: ${response.status}`)
     }
 
     const data = await response.json()
-    console.log(`📊 Fetched tax rates for store ${storeId}:`, data)
+    
+    // Filter out old tax format (temporary fix)
+    if (data && data.tax_rates && Array.isArray(data.tax_rates)) {
+      // Check if this is old format data (has 'type' field)
+      const hasOldFormat = data.tax_rates.some((rate: any) => 'type' in rate)
+      
+      if (hasOldFormat) {
+        console.log('⚠️  Old tax format detected, returning empty rates until cleanup')
+        data.tax_rates = []
+        data.total_rate = 0
+      }
+    }
+    
+    console.log('📊 Fetched tax rates for store', storeId + ':', data)
     
     // Return with cache headers to prevent stale data
     return NextResponse.json(data, {
