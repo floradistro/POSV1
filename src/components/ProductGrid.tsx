@@ -101,6 +101,15 @@ export function ProductGrid({ category, searchQuery, onAddToCart, onProductCount
     )
   }
 
+  // Calculate grid columns based on screen size and customer view state
+  const getGridCols = () => {
+    if (isCustomerViewOpen) {
+      return 2 // Always 2 columns when customer view is open
+    } else {
+      return 3 // Always 3 columns when customer view is closed
+    }
+  }
+
   return (
     <div className={`pb-8 ${
       isListView 
@@ -111,7 +120,7 @@ export function ProductGrid({ category, searchQuery, onAddToCart, onProductCount
               : 'md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3'
           }`
     }`}>
-      {filteredProducts.map((product: FloraProduct) => (
+      {filteredProducts.map((product: FloraProduct, index: number) => (
         <ProductCard
           key={product.id}
           product={product}
@@ -119,6 +128,8 @@ export function ProductGrid({ category, searchQuery, onAddToCart, onProductCount
           globalSelectedProduct={globalSelectedProduct}
           setGlobalSelectedProduct={setGlobalSelectedProduct}
           isListView={isListView}
+          index={index}
+          gridCols={getGridCols()}
         />
       ))}
     </div>

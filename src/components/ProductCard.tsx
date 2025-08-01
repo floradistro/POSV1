@@ -32,14 +32,30 @@ interface ProductCardProps {
   globalSelectedProduct: { productId: number; variation: string } | null
   setGlobalSelectedProduct: (selection: { productId: number; variation: string } | null) => void
   isListView?: boolean
+  index?: number
+  gridCols?: number
 }
 
-export function ProductCard({ product, onAddToCart, globalSelectedProduct, setGlobalSelectedProduct, isListView = false }: ProductCardProps) {
+export function ProductCard({ product, onAddToCart, globalSelectedProduct, setGlobalSelectedProduct, isListView = false, index = 0, gridCols = 3 }: ProductCardProps) {
   // Use global selection state instead of local state
   const selectedVariation = globalSelectedProduct?.productId === product.id ? globalSelectedProduct.variation : 'default'
   
   // Local state for list view expansion
   const [isExpanded, setIsExpanded] = useState(false)
+  
+  // Calculate row for grid view alternation
+  const getRowBasedAlternation = () => {
+    if (isListView) {
+      // In list view, alternate by index (each card is a row)
+      return index % 2 === 0
+    } else {
+      // In grid view, alternate by row (calculate which row the card is in)
+      const row = Math.floor(index / gridCols)
+      return row % 2 === 0
+    }
+  }
+  
+  const isEvenRow = getRowBasedAlternation()
   
   // Get ACF fields for strain type (only for list view)
   const { acfFields = [] } = useACFFields(isListView ? product.id : null)
@@ -139,7 +155,7 @@ export function ProductCard({ product, onAddToCart, globalSelectedProduct, setGl
   if (isListView) {
     // List View - Expandable Layout
     return (
-      <div className="relative bg-vscode-bgSecondary hover:bg-vscode-bgTertiary transition-all duration-300 group border-b border-white/[0.04]">
+      <div className={`relative ${isEvenRow ? 'bg-black/10' : 'bg-black/35'} hover:bg-vscode-bgTertiary transition-all duration-300 group border-b border-white/[0.04]`}>
         {/* Main Row - Always Visible */}
         <div 
           className="flex items-center w-full gap-4 px-3 py-2 min-h-[50px] cursor-pointer"
@@ -410,8 +426,8 @@ export function ProductCard({ product, onAddToCart, globalSelectedProduct, setGl
   }
 
   // Grid View Layout
-  return (
-    <div className="relative bg-vscode-bgSecondary hover:bg-vscode-bgTertiary transition-all duration-300 cursor-pointer group border border-white/[0.04] hover:border-white/[0.12] flex flex-col h-full">
+      return (
+      <div className={`relative ${isEvenRow ? 'bg-black/10' : 'bg-black/35'} hover:bg-vscode-bgTertiary transition-all duration-300 cursor-pointer group border border-white/[0.04] hover:border-white/[0.12] flex flex-col h-full`}>
       {/* Main Content Area - Fixed Height */}
       <div className="flex gap-2 p-2 flex-1">
         {/* Product Image */}
@@ -494,7 +510,7 @@ export function ProductCard({ product, onAddToCart, globalSelectedProduct, setGl
       
       {/* Weight/Quantity Selectors - Aligned at Bottom */}
       {(product.mli_product_type === 'weight' && product.pricing_tiers) && (
-        <div className="w-full space-y-1 px-2 pb-2 border-t border-white/[0.04] pt-2 mt-auto">
+        <div className="w-full space-y-1 px-2 pb-2 pt-2 mt-auto">
           {/* Flower Pricing */}
           <div className="text-xs text-vscode-textMuted">
             {product.preroll_pricing_tiers ? 'Flower (grams)' : 'Weight Options (grams)'}
@@ -567,7 +583,7 @@ export function ProductCard({ product, onAddToCart, globalSelectedProduct, setGl
       )}
       
       {(product.mli_product_type === 'quantity' && product.pricing_tiers) && (
-        <div className="w-full space-y-1 px-2 pb-2 border-t border-white/[0.04] pt-2 mt-auto">
+        <div className="w-full space-y-1 px-2 pb-2 pt-2 mt-auto">
           <div className="text-xs text-vscode-textMuted">Quantity Pricing</div>
           <div className="flex gap-1 text-xs">
             {Object.entries(product.pricing_tiers || {}).slice(0, 4).map(([qty, pricePerUnit]) => {
