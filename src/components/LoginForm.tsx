@@ -136,24 +136,25 @@ export function LoginForm() {
   const selectedStore = stores.find(store => store.id.toString() === formData.storeId)
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="max-w-md w-full space-y-8 p-8">
+    <div className="min-h-screen bg-background">
+      <div className="flex min-h-screen items-center justify-center p-4 sm:p-6 lg:p-8">
+        <div className="w-full max-w-md space-y-6 sm:space-y-8">
         {/* Header */}
         <div className="text-center">
-          <div className="mx-auto h-16 w-16 flex items-center justify-center rounded-full bg-background-secondary border border-border-default mb-6">
+          <div className="mx-auto h-12 w-12 sm:h-16 sm:w-16 flex items-center justify-center rounded-full bg-background-secondary border border-border-default mb-4 sm:mb-6">
             <img
               src="/logo.png"
               alt="Flora Distro"
-              className="w-12 h-12 object-contain"
+              className="w-8 h-8 sm:w-12 sm:h-12 object-contain"
             />
           </div>
-          <h2 className="text-4xl font-graffiti text-text-primary mb-2">Flora Distro</h2>
+          <h2 className="text-2xl sm:text-4xl font-graffiti text-text-primary mb-2">Flora Distro</h2>
           <p className="text-sm text-text-secondary">Sign in to your store terminal</p>
         </div>
 
         {/* Login Form */}
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
+        <form className="mt-6 sm:mt-8 space-y-4 sm:space-y-6" onSubmit={handleSubmit}>
+          <div className="space-y-3 sm:space-y-4">
             {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-text-secondary mb-2">
@@ -171,7 +172,7 @@ export function LoginForm() {
                   required
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="appearance-none relative block w-full pl-10 pr-3 py-3 border border-border-default placeholder-text-tertiary text-text-primary bg-background-secondary rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent sm:text-sm transition-colors duration-200"
+                  className="appearance-none relative block w-full pl-10 pr-3 py-2 sm:py-3 border border-border-default placeholder-text-tertiary text-text-primary bg-background-secondary rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent text-sm transition-colors duration-200"
                   placeholder="Enter your email"
                 />
               </div>
@@ -194,7 +195,7 @@ export function LoginForm() {
                   required
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="appearance-none relative block w-full pl-10 pr-10 py-3 border border-border-default placeholder-text-tertiary text-text-primary bg-background-secondary rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent sm:text-sm transition-colors duration-200"
+                  className="appearance-none relative block w-full pl-10 pr-10 py-2 sm:py-3 border border-border-default placeholder-text-tertiary text-text-primary bg-background-secondary rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent text-sm transition-colors duration-200"
                   placeholder="Enter your password"
                 />
                 <button
@@ -227,7 +228,7 @@ export function LoginForm() {
                   value={formData.storeId}
                   onChange={handleInputChange}
                   disabled={loadingStores || stores.length === 0}
-                  className="appearance-none relative block w-full pl-10 pr-3 py-3 border border-border-default text-text-primary bg-background-secondary rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent sm:text-sm disabled:opacity-50 transition-colors duration-200"
+                  className="appearance-none relative block w-full pl-10 pr-3 py-2 sm:py-3 border border-border-default text-text-primary bg-background-secondary rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent text-sm disabled:opacity-50 transition-colors duration-200"
                 >
                   <option value="">
                     {loadingStores 
@@ -262,7 +263,7 @@ export function LoginForm() {
                   value={formData.terminalId}
                   onChange={handleInputChange}
                   disabled={!formData.storeId}
-                  className="appearance-none relative block w-full pl-10 pr-3 py-3 border border-border-default text-text-primary bg-background-secondary rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent sm:text-sm disabled:opacity-50 transition-colors duration-200"
+                  className="appearance-none relative block w-full pl-10 pr-3 py-2 sm:py-3 border border-border-default text-text-primary bg-background-secondary rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent text-sm disabled:opacity-50 transition-colors duration-200"
                 >
                   <option value="">
                     {!formData.storeId ? 'Select a store first' : 'Select a terminal'}
@@ -282,7 +283,7 @@ export function LoginForm() {
             <button
               type="submit"
               disabled={isLoading || stores.length === 0 || !formData.email || !formData.password || !formData.storeId || !formData.terminalId}
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-secondary hover:bg-secondary-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+              className="group relative w-full flex justify-center py-2 sm:py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-secondary hover:bg-secondary-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
             >
               <span className="absolute left-0 inset-y-0 flex items-center pl-3">
                 <LogIn className="h-5 w-5 text-white/80 group-hover:text-white" />
@@ -293,7 +294,7 @@ export function LoginForm() {
 
           {/* Store Info */}
           {selectedStore && (
-            <div className="mt-4 p-4 bg-background-secondary rounded-lg border border-border-default">
+            <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-background-secondary rounded-lg border border-border-default">
               <div className="text-sm text-text-secondary">
                 <div className="font-medium text-text-primary mb-1">Selected Store:</div>
                 <div>{selectedStore.name}</div>
@@ -304,7 +305,7 @@ export function LoginForm() {
 
           {/* API Status */}
           {stores.length === 0 && !loadingStores && (
-            <div className="mt-4 p-4 bg-error/10 rounded-lg border border-error/30">
+            <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-error/10 rounded-lg border border-error/30">
               <div className="text-sm text-error">
                 <div className="font-medium">⚠️ API Connection Issue</div>
                 <div className="text-xs mt-1 text-error/80">Unable to load stores from Flora POS API. Please check your connection or contact administrator.</div>
@@ -312,6 +313,7 @@ export function LoginForm() {
             </div>
           )}
         </form>
+        </div>
       </div>
     </div>
   )

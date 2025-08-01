@@ -75,7 +75,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
   }
 
   return (
-    <div className="bg-vscode-bgSecondary px-0 py-1 hover:bg-vscode-bgTertiary transition-all duration-300 cursor-pointer group border border-vscode-border hover:border-vscode-accent/30">
+    <div className="bg-vscode-bgSecondary px-0 hover:bg-vscode-bgTertiary transition-all duration-300 cursor-pointer group border border-vscode-border hover:border-vscode-accent/30">
       <div className="relative aspect-square mb-1">
         {product.images?.[0] ? (
           <Image

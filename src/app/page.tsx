@@ -380,7 +380,7 @@ export default function FloraDistrosPOS() {
           )}
 
           {/* Products Grid */}
-          <div className="flex-1 px-0 py-6 overflow-y-auto">
+          <div className="flex-1 px-0 pb-6 overflow-y-auto">
             <ProductGrid
               category={activeCategory === 'all' ? null : mainCategories.find(cat => cat.slug === activeCategory)?.id || null}
               searchQuery={searchQuery}
