@@ -21,9 +21,10 @@ interface ProductCardProps {
   onAddToCart: (product: FloraProduct, selectedVariation?: string) => void
   globalSelectedProduct: { productId: number; variation: string } | null
   setGlobalSelectedProduct: (selection: { productId: number; variation: string } | null) => void
+  isListView?: boolean
 }
 
-export function ProductCard({ product, onAddToCart, globalSelectedProduct, setGlobalSelectedProduct }: ProductCardProps) {
+export function ProductCard({ product, onAddToCart, globalSelectedProduct, setGlobalSelectedProduct, isListView = false }: ProductCardProps) {
   // Use global selection state instead of local state
   const selectedVariation = globalSelectedProduct?.productId === product.id ? globalSelectedProduct.variation : 'default'
 
@@ -114,189 +115,249 @@ export function ProductCard({ product, onAddToCart, globalSelectedProduct, setGl
   const selectedPrice = getSelectedPrice()
 
   return (
-    <div className="bg-vscode-bgSecondary px-0 hover:bg-vscode-bgTertiary transition-all duration-300 cursor-pointer group border border-white/[0.04] hover:border-white/[0.12]">
-      <div className="relative aspect-square mb-1">
-        {product.images?.[0] ? (
-          <Image
-            src={product.images[0].src}
-            alt={product.images[0].alt || product.name}
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
-          />
-        ) : (
-          <div className="w-full h-full bg-vscode-bgTertiary flex items-center justify-center border border-white/[0.04]">
-            <span className="text-vscode-textMuted text-sm">No image</span>
-          </div>
-        )}
-        {hasDiscount && (
-          <div className="absolute top-1 right-1 bg-vscode-accent text-white px-1 py-0.5 text-xs font-medium">
-            Sale
-          </div>
-        )}
-        {isOutOfStock && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-            <span className="text-white font-medium">Out of Stock</span>
-          </div>
-        )}
-      </div>
-      
-      <div className="px-2">
-        <div className="flex items-start justify-between mb-1">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between">
-                  <h3 className="font-medium text-vscode-text text-sm line-clamp-2 group-hover:text-white transition-colors flex-1">{product.name}</h3>
-                  {(product.mli_product_type === 'weight' || product.mli_product_type === 'quantity') && selectedPrice && (
-                    <span className="text-vscode-accent font-bold text-sm ml-2 flex-shrink-0">${selectedPrice.toFixed(2)}</span>
+    <div className={`relative bg-vscode-bgSecondary hover:bg-vscode-bgTertiary transition-all duration-300 cursor-pointer group border border-white/[0.04] hover:border-white/[0.12] ${
+      isListView 
+        ? 'flex items-center gap-2 px-3 py-1 min-h-[40px]' 
+        : 'flex flex-col'
+    }`}>
+      {/* Main Content Area */}
+      <div className={`${isListView ? 'flex items-center gap-2 flex-1' : 'flex gap-2 p-2'}`}>
+        {/* Product Image */}
+        <div className={`relative ${
+          isListView 
+            ? 'w-8 h-8 flex-shrink-0 mb-0' 
+            : 'w-20 h-20 flex-shrink-0'
+        }`}>
+          {product.images?.[0] ? (
+            <Image
+              src={product.images[0].src}
+              alt={product.images[0].alt || product.name}
+              fill
+              className="object-contain"
+              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
+            />
+          ) : (
+            <div className="w-full h-full bg-vscode-bgTertiary flex items-center justify-center border border-white/[0.04]">
+              <span className="text-vscode-textMuted text-sm">No image</span>
+            </div>
+          )}
+          {hasDiscount && (
+            <div className="absolute top-1 right-1 bg-vscode-accent text-white px-1 py-0.5 text-xs font-medium">
+              Sale
+            </div>
+          )}
+          {isOutOfStock && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+              <span className="text-white font-medium">Out of Stock</span>
+            </div>
+          )}
+        </div>
+        
+        {/* Product Information */}
+        <div className={`${isListView ? 'flex-1' : 'flex-1 min-w-0'}`}>
+          <div className={`flex items-start justify-between ${isListView ? 'mb-0' : 'mb-1'}`}>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between mb-1">
+                    <h3 className={`font-medium text-vscode-text group-hover:text-white transition-colors flex-1 ${
+                      isListView ? 'text-xs line-clamp-1' : 'text-sm line-clamp-1'
+                    }`}>{product.name}</h3>
+                    {(product.mli_product_type === 'weight' || product.mli_product_type === 'quantity') && selectedPrice && (
+                      <span className={`text-vscode-accent font-bold ml-2 flex-shrink-0 ${
+                        isListView ? 'text-xs' : 'text-sm'
+                      }`}>${selectedPrice.toFixed(2)}</span>
+                    )}
+                  </div>
+                  {!isListView && (
+                    <div className="w-full overflow-visible">
+                      <ProductLineage productId={product.id} product={product} />
+                    </div>
                   )}
                 </div>
-                <ProductLineage productId={product.id} product={product} />
+                {!isListView && <ProductNameSideInfo productId={product.id} />}
               </div>
-              <ProductNameSideInfo productId={product.id} />
             </div>
           </div>
-        </div>
-        
-        {/* Product Characteristics */}
-        <ProductCharacteristics productId={product.id} />
-        
-        {/* Pricing Section */}
-        <div className="flex flex-col mb-1">
-        {product.mli_product_type === 'weight' && product.pricing_tiers ? (
-          // Weight-based pricing tiers (flower with prerolls or concentrates)
-          <div className="space-y-1">
-            {/* Flower Pricing */}
-            <div className="text-xs text-vscode-textMuted">
-              {product.preroll_pricing_tiers ? 'Flower (grams)' : 'Weight Options (grams)'}
-            </div>
-            <div className="flex gap-1 text-xs">
-              {Object.entries(product.pricing_tiers).map(([grams, totalPrice]) => {
-                const variationKey = `flower-${grams}`
-                const isSelected = selectedVariation === variationKey
-                return (
-                  <button
-                    key={grams}
-                    onClick={() => handleVariationSelect(variationKey)}
-                    disabled={isOutOfStock}
-                    className={`flex-1 justify-center px-2 py-1 rounded text-sm font-medium transition-colors ${
-                      isOutOfStock 
-                        ? 'bg-gray-400 cursor-not-allowed text-gray-600' 
-                        : isSelected
-                        ? 'bg-primary text-white'
-                        : 'bg-background-tertiary text-text-secondary hover:bg-background-tertiary/80'
-                    }`}
-                  >
-                    {grams}g
-                  </button>
-                )
-              })}
-            </div>
-            
-            {/* Preroll Pricing (if available) */}
-            {product.preroll_pricing_tiers && (
-              <>
-                <div className="text-xs text-vscode-textMuted mt-2">
-                  Pre-rolls (count)
-                </div>
-                <div className="flex gap-1 text-xs">
-                  {Object.entries(product.preroll_pricing_tiers).map(([count, totalPrice]) => {
-                    const variationKey = `preroll-${count}`
-                    const isSelected = selectedVariation === variationKey
-                    return (
-                      <button
-                        key={count}
-                        onClick={() => handleVariationSelect(variationKey)}
-                        disabled={isOutOfStock}
-                        className={`flex-1 justify-center px-2 py-1 rounded text-sm font-medium transition-colors ${
-                          isOutOfStock 
-                            ? 'bg-gray-400 cursor-not-allowed text-gray-600' 
-                            : isSelected
-                            ? 'bg-primary text-white'
-                            : 'bg-background-tertiary text-text-secondary hover:bg-background-tertiary/80'
-                        }`}
-                      >
-                        {count}x
-                      </button>
-                    )
-                  })}
-                </div>
-              </>
-            )}
-            
-            <div className="text-xs text-vscode-textMuted text-center">
-              Best rate: ${price.toFixed(2)}/g
-            </div>
-          </div>
-        ) : product.mli_product_type === 'quantity' && product.pricing_tiers ? (
-          // Quantity-based pricing tiers
-          <div className="space-y-1">
-            <div className="text-xs text-vscode-textMuted">Quantity Pricing</div>
-            <div className="flex gap-1 text-xs">
-              {Object.entries(product.pricing_tiers).slice(0, 4).map(([qty, pricePerUnit]) => {
-                const variationKey = `qty-${qty}`
-                const isSelected = selectedVariation === variationKey
-                return (
-                  <button
-                    key={qty}
-                    onClick={() => handleVariationSelect(variationKey)}
-                    disabled={isOutOfStock}
-                    className={`flex-1 justify-center px-2 py-1 rounded text-sm font-medium transition-colors ${
-                      isOutOfStock 
-                        ? 'bg-gray-400 cursor-not-allowed text-gray-600' 
-                        : isSelected
-                        ? 'bg-primary text-white'
-                        : 'bg-background-tertiary text-text-secondary hover:bg-background-tertiary/80'
-                    }`}
-                  >
-                    {qty} units
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        ) : (
-          // Standard pricing
-          <div className="flex items-center gap-2">
-            <span className="text-vscode-accent font-bold text-lg">${price.toFixed(2)}</span>
-            {hasDiscount && (
-              <span className="text-vscode-textMuted text-sm line-through">${regularPrice.toFixed(2)}</span>
-            )}
-          </div>
-        )}
-        
-        <div className="flex items-start justify-between mt-1">
-          <span className={`text-xs ${getStockColor()}`}>
-            {getStockText()}
-          </span>
-        </div>
-        
-        {/* ACF Fields Display */}
-        <div className="relative pb-12">
-          <ACFFieldsDisplay 
-            productId={product.id}
-            productName={product.name}
-          />
           
-          {/* Add Button - Only show when quantity/weight is selected */}
-          {(product.mli_product_type === 'weight' || product.mli_product_type === 'quantity') && selectedVariation !== 'default' && (
+          {/* Product Characteristics */}
+          {!isListView && <ProductCharacteristics productId={product.id} />}
+          
+          {/* Standard Pricing Section */}
+          {!(product.mli_product_type === 'weight' && product.pricing_tiers) && !(product.mli_product_type === 'quantity' && product.pricing_tiers) && (
+            <>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-vscode-accent font-bold text-lg">${price.toFixed(2)}</span>
+                {hasDiscount && (
+                  <span className="text-vscode-textMuted text-sm line-through">${regularPrice.toFixed(2)}</span>
+                )}
+              </div>
+              {!isListView && (
+                <div className="flex items-start justify-between mt-1">
+                  <span className={`text-xs ${getStockColor()}`}>
+                    {getStockText()}
+                  </span>
+                </div>
+              )}
+            </>
+          )}
+          
+          {/* ACF Fields Display - Hidden in list view */}
+          {!isListView && (
+            <div className={`relative ${
+              (product.mli_product_type === 'weight' || product.mli_product_type === 'quantity') 
+                ? 'pb-12' 
+                : ''
+            }`}>
+              <ACFFieldsDisplay 
+                productId={product.id}
+                productName={product.name}
+              />
+            </div>
+          )}
+          
+          {/* Compact Add Button for List View */}
+          {isListView && (product.mli_product_type === 'weight' || product.mli_product_type === 'quantity') && selectedVariation !== 'default' && (
             <button
               onClick={handleAddToCart}
               disabled={isOutOfStock}
-              className={`absolute bottom-2 right-0 px-2 py-1 rounded text-sm font-medium transition-colors flex items-center gap-1 ${
+              className={`ml-auto px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${
                 isOutOfStock 
                   ? 'bg-gray-400 cursor-not-allowed text-gray-600' 
                   : 'bg-blue-500 text-white hover:bg-blue-600'
               }`}
             >
-              <Plus className="w-3 h-3" />
+              <Plus className="w-2 h-2" />
               Add
             </button>
           )}
         </div>
-        </div>
       </div>
+      
+      {/* Weight/Quantity Selectors - Full Width Below Everything */}
+      {!isListView && (product.mli_product_type === 'weight' && product.pricing_tiers) && (
+        <div className="w-full space-y-2 mt-2 px-2 pb-12">
+          {/* Flower Pricing */}
+          <div className="text-xs text-vscode-textMuted">
+            {product.preroll_pricing_tiers ? 'Flower (grams)' : 'Weight Options (grams)'}
+          </div>
+          <div className="flex gap-1 text-xs">
+            {Object.entries(product.pricing_tiers || {}).map(([grams, totalPrice]) => {
+              const variationKey = `flower-${grams}`
+              const isSelected = selectedVariation === variationKey
+              return (
+                <button
+                  key={grams}
+                  onClick={() => handleVariationSelect(variationKey)}
+                  disabled={isOutOfStock}
+                  className={`flex-1 justify-center px-2 py-1 rounded text-sm font-medium transition-colors ${
+                    isOutOfStock 
+                      ? 'bg-gray-400 cursor-not-allowed text-gray-600' 
+                      : isSelected
+                      ? 'bg-primary text-white'
+                      : 'bg-background-tertiary text-text-secondary hover:bg-background-tertiary/80'
+                  }`}
+                >
+                  {grams}g
+                </button>
+              )
+            })}
+          </div>
+          
+          {/* Preroll Pricing (if available) */}
+          {product.preroll_pricing_tiers && (
+            <>
+              <div className="text-xs text-vscode-textMuted mt-2">
+                Pre-rolls (count)
+              </div>
+              <div className="flex gap-1 text-xs">
+                {Object.entries(product.preroll_pricing_tiers || {}).map(([count, totalPrice]) => {
+                  const variationKey = `preroll-${count}`
+                  const isSelected = selectedVariation === variationKey
+                  return (
+                    <button
+                      key={count}
+                      onClick={() => handleVariationSelect(variationKey)}
+                      disabled={isOutOfStock}
+                      className={`flex-1 justify-center px-2 py-1 rounded text-sm font-medium transition-colors ${
+                        isOutOfStock 
+                          ? 'bg-gray-400 cursor-not-allowed text-gray-600' 
+                          : isSelected
+                          ? 'bg-primary text-white'
+                          : 'bg-background-tertiary text-text-secondary hover:bg-background-tertiary/80'
+                      }`}
+                    >
+                      {count}x
+                    </button>
+                  )
+                })}
+              </div>
+            </>
+          )}
+          
+          <div className="text-xs text-vscode-textMuted text-center">
+            Best rate: ${price.toFixed(2)}/g
+          </div>
+          
+          {/* Stock Information */}
+          <div className="flex items-center justify-center mt-2">
+            <span className={`text-xs ${getStockColor()}`}>
+              {getStockText()}
+            </span>
+          </div>
+        </div>
+      )}
+      
+      {!isListView && (product.mli_product_type === 'quantity' && product.pricing_tiers) && (
+        <div className="w-full space-y-2 mt-2 px-2 pb-12">
+          <div className="text-xs text-vscode-textMuted">Quantity Pricing</div>
+          <div className="flex gap-1 text-xs">
+            {Object.entries(product.pricing_tiers || {}).slice(0, 4).map(([qty, pricePerUnit]) => {
+              const variationKey = `qty-${qty}`
+              const isSelected = selectedVariation === variationKey
+              return (
+                <button
+                  key={qty}
+                  onClick={() => handleVariationSelect(variationKey)}
+                  disabled={isOutOfStock}
+                  className={`flex-1 justify-center px-2 py-1 rounded text-sm font-medium transition-colors ${
+                    isOutOfStock 
+                      ? 'bg-gray-400 cursor-not-allowed text-gray-600' 
+                      : isSelected
+                      ? 'bg-primary text-white'
+                      : 'bg-background-tertiary text-text-secondary hover:bg-background-tertiary/80'
+                  }`}
+                >
+                  {qty} units
+                </button>
+              )
+            })}
+          </div>
+          
+          {/* Stock Information */}
+          <div className="flex items-center justify-center mt-2">
+            <span className={`text-xs ${getStockColor()}`}>
+              {getStockText()}
+            </span>
+          </div>
+        </div>
+      )}
+      
+      {/* Add Button - Bottom Right Corner */}
+      {!isListView && (product.mli_product_type === 'weight' || product.mli_product_type === 'quantity') && selectedVariation !== 'default' && (
+        <button
+          onClick={handleAddToCart}
+          disabled={isOutOfStock}
+          className={`absolute bottom-2 right-2 px-3 py-2 rounded text-sm font-medium transition-colors flex items-center gap-1 ${
+            isOutOfStock 
+              ? 'bg-gray-400 cursor-not-allowed text-gray-600' 
+              : 'bg-blue-500 text-white hover:bg-blue-600 shadow-lg'
+          }`}
+        >
+          <Plus className="w-4 h-4" />
+          Add
+        </button>
+      )}
     </div>
   )
 } 

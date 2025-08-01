@@ -14,9 +14,10 @@ interface ProductGridProps {
   onProductCountChange?: (count: number) => void
   onLoadingChange?: (loading: boolean) => void
   isCustomerViewOpen?: boolean
+  isListView?: boolean
 }
 
-export function ProductGrid({ category, searchQuery, onAddToCart, onProductCountChange, onLoadingChange, isCustomerViewOpen = false }: ProductGridProps) {
+export function ProductGrid({ category, searchQuery, onAddToCart, onProductCountChange, onLoadingChange, isCustomerViewOpen = false, isListView = false }: ProductGridProps) {
   const { store } = useAuth()
   const [globalSelectedProduct, setGlobalSelectedProduct] = useState<{ productId: number; variation: string } | null>(null)
 
@@ -101,10 +102,14 @@ export function ProductGrid({ category, searchQuery, onAddToCart, onProductCount
   }
 
   return (
-    <div className={`grid grid-cols-1 sm:grid-cols-2 gap-0 pb-8 ${
-      isCustomerViewOpen 
-        ? 'md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2' 
-        : 'md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3'
+    <div className={`pb-8 ${
+      isListView 
+        ? 'flex flex-col gap-0' 
+        : `grid grid-cols-1 sm:grid-cols-2 gap-0 ${
+            isCustomerViewOpen 
+              ? 'md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2' 
+              : 'md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3'
+          }`
     }`}>
       {filteredProducts.map((product: FloraProduct) => (
         <ProductCard
@@ -113,6 +118,7 @@ export function ProductGrid({ category, searchQuery, onAddToCart, onProductCount
           onAddToCart={onAddToCart}
           globalSelectedProduct={globalSelectedProduct}
           setGlobalSelectedProduct={setGlobalSelectedProduct}
+          isListView={isListView}
         />
       ))}
     </div>
