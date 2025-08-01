@@ -8,6 +8,7 @@ import { useLocation } from '@/contexts/LocationContext'
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+import { useTaxRates, calculateTaxAmount } from '@/hooks/useTaxRates'
 
 // Helper function to format variation display
 function formatVariationDisplay(variation: string): string {
@@ -83,13 +84,20 @@ export function Cart({
   const [cashReceived, setCashReceived] = useState('')
   const [customerEmail, setCustomerEmail] = useState('')
   
+  // Fetch tax rates for the current location
+  const { data: taxRatesData, isLoading: taxRatesLoading } = useTaxRates()
+  
   const subtotal = items.reduce((total, item) => {
     const price = parseFloat(item.price) || 0
     console.log(`Cart calculation - Product: ${item.name}, Variation: ${item.selectedVariation}, Price: $${price}`)
     return total + price * item.cartQuantity
   }, 0)
 
-  const tax = subtotal * 0.06
+  // Calculate tax using location-specific rates
+  const { taxAmount: tax, taxBreakdown } = calculateTaxAmount(
+    subtotal,
+    taxRatesData?.tax_rates || []
+  )
   const total = subtotal + tax
 
   const createOrderMutation = useMutation({
@@ -173,6 +181,18 @@ export function Cart({
         {
           key: '_cashier_email',
           value: 'pos@floracannabis.com' // This should come from your auth context
+        },
+        {
+          key: '_tax_total',
+          value: tax.toFixed(2)
+        },
+        {
+          key: '_tax_breakdown',
+          value: JSON.stringify(taxBreakdown || [])
+        },
+        {
+          key: '_location_tax_rates',
+          value: JSON.stringify(taxRatesData?.tax_rates || [])
         }
       ],
       billing: {
@@ -410,10 +430,19 @@ export function Cart({
                   <span className="text-text-secondary">Subtotal</span>
                   <span className="text-text-primary">${subtotal.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-text-secondary">Tax (6%)</span>
-                  <span className="text-text-primary">${tax.toFixed(2)}</span>
-                </div>
+                {taxBreakdown && taxBreakdown.length > 0 ? (
+                  taxBreakdown.map((taxItem, index) => (
+                    <div key={index} className="flex justify-between text-sm mb-1">
+                      <span className="text-text-secondary">{taxItem.name}</span>
+                      <span className="text-text-primary">${taxItem.amount.toFixed(2)}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-text-secondary">Tax</span>
+                    <span className="text-text-primary">${tax.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between font-semibold text-text-primary">
                   <span>Total</span>
                   <span>${total.toFixed(2)}</span>
@@ -589,10 +618,19 @@ export function Cart({
                 <span className="text-text-secondary">Subtotal</span>
                 <span className="text-text-primary">${subtotal.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-text-secondary">Tax (6%)</span>
-                <span className="text-text-primary">${tax.toFixed(2)}</span>
-              </div>
+              {taxBreakdown && taxBreakdown.length > 0 ? (
+                taxBreakdown.map((taxItem, index) => (
+                  <div key={index} className="flex justify-between text-sm">
+                    <span className="text-text-secondary">{taxItem.name}</span>
+                    <span className="text-text-primary">${taxItem.amount.toFixed(2)}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="flex justify-between text-sm">
+                  <span className="text-text-secondary">Tax</span>
+                  <span className="text-text-primary">${tax.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-base font-semibold pt-2 border-t border-border">
                 <span className="text-text-primary">Total</span>
                 <span className="text-text-primary">${total.toFixed(2)}</span>
